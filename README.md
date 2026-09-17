@@ -42,4 +42,4 @@ node scripts/publish.js "Describe the change"
 ```
 
 Check what the live site is serving with `node scripts/publish.js --check`. The live URL is set in
-`deploy.config.json`. Netlify must be linked to this repository for pushes to deploy.
+`deploy.config.json`. The Netlify project is linked to this repository, so every push to `main` deploys automatically.
