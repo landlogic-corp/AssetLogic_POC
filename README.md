@@ -34,6 +34,12 @@ node scripts/build-index.js
 
 ## Deploy
 
-The site is hosted on Netlify. Until the repository is linked to the Netlify project, deploys are manual:
-upload a zip of `index.html`, `asset-monitor.html`, `netlify.toml` and `scripts/` on the project's Deploys page.
-Once linked, Netlify builds and publishes on every push to `main`. There are no dependencies to install.
+Publish a change with one command. It rebuilds `index.html`, commits, pushes to `main`, and waits until
+the Netlify site serves that commit:
+
+```bash
+node scripts/publish.js "Describe the change"
+```
+
+Check what the live site is serving with `node scripts/publish.js --check`. The live URL is set in
+`deploy.config.json`. Netlify must be linked to this repository for pushes to deploy.
