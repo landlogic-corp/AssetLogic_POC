@@ -1,0 +1,1482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>LandLogic Asset Monitor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap">
+<style>
+  :root {
+    --ink: #124A39;          /* brand dark green: headings, nav */
+    --text: #1F2D28;
+    --text-2: #5F6E68;
+    --text-3: #8A9793;
+    --accent: #35C98A;       /* map outline green */
+    --accent-deep: #1E8E5A;  /* buttons, chart series 1 */
+    --accent-soft: #D8F0E3;  /* active nav */
+    --accent-tint: #EEF8F3;
+    --border: #E2E8E5;
+    --border-strong: #C9D3CF;
+    --surface: #FFFFFF;
+    --surface-2: #F6F8F7;
+    --ground: #F1F3F3;       /* map ground */
+    --building: #D4E2E1;
+    --road: #FFFFFF;
+    --water: #DCE3E5;
+    --park: #E4ECE7;
+    --map-label: #7E8C89;
+    --muni-label: #5CC79A;
+    --series-2: #4A72B8;
+    --critical: #D64545;
+    --critical-soft: #FBE9E9;
+    --warning: #D9901A;
+    --warning-soft: #FCF1DD;
+    --good: #1E8E5A;
+    --good-soft: #DFF3E8;
+    --info: #4A72B8;
+    --info-soft: #E5ECF7;
+    --shadow: 0 6px 24px rgba(18, 74, 57, 0.12);
+    --shadow-sm: 0 1px 3px rgba(18, 74, 57, 0.10);
+    --radius: 10px;
+    --sidebar-w: 256px;
+    --panel-w: 470px;
+    --font: "Figtree", "Segoe UI", system-ui, -apple-system, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ink: #BFE6D3; --text: #E6ECE9; --text-2: #A9B7B1; --text-3: #7C8A85;
+      --accent-soft: #1E3A30; --accent-tint: #172A23;
+      --border: #2A3934; --border-strong: #3B4B45;
+      --surface: #131C19; --surface-2: #192420;
+      --ground: #1C2421; --building: #26332F; --road: #2E3B37; --water: #1E2A2E; --park: #21302A;
+      --map-label: #8A9995; --critical-soft: #3A2222; --warning-soft: #3A2F1A; --good-soft: #1B3328; --info-soft: #1E2A3D;
+      --shadow: 0 6px 24px rgba(0,0,0,0.5); --shadow-sm: 0 1px 3px rgba(0,0,0,0.4);
+    }
+  }
+  :root[data-theme="dark"] {
+    --ink: #BFE6D3; --text: #E6ECE9; --text-2: #A9B7B1; --text-3: #7C8A85;
+    --accent-soft: #1E3A30; --accent-tint: #172A23;
+    --border: #2A3934; --border-strong: #3B4B45;
+    --surface: #131C19; --surface-2: #192420;
+    --ground: #1C2421; --building: #26332F; --road: #2E3B37; --water: #1E2A2E; --park: #21302A;
+    --map-label: #8A9995; --critical-soft: #3A2222; --warning-soft: #3A2F1A; --good-soft: #1B3328; --info-soft: #1E2A3D;
+    --shadow: 0 6px 24px rgba(0,0,0,0.5); --shadow-sm: 0 1px 3px rgba(0,0,0,0.4);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body { margin: 0; background: var(--surface); color: var(--text); font-family: var(--font); font-size: 14px; line-height: 1.4; overflow: hidden; }
+  button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+  input, select { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid var(--accent-deep); outline-offset: 2px; }
+  svg.i { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+  .num { font-variant-numeric: tabular-nums; }
+  h1, h2, h3 { text-wrap: balance; margin: 0; }
+
+  /* ---------- App shell ---------- */
+  .app { display: grid; grid-template-columns: var(--sidebar-w) minmax(0, 1fr) var(--panel-w); grid-template-rows: minmax(0, 1fr); height: 100vh; width: 100%; overflow: hidden; }
+  .app > * { min-height: 0; min-width: 0; }
+  .sidebar { overflow-y: auto; }
+
+  /* Sidebar */
+  .sidebar { border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 22px 8px 12px; background: var(--surface); }
+  .logo { display: block; padding: 0 12px 24px; color: var(--ink); }
+  .logo svg { width: 100%; max-width: 196px; height: auto; display: block; }
+  .nav { display: flex; flex-direction: column; gap: 6px; }
+  .nav a { display: flex; align-items: center; gap: 12px; white-space: nowrap; padding: 12px 16px; border-radius: 8px; color: var(--ink); text-decoration: none; font-weight: 500; font-size: 16px; }
+  .nav a:hover { background: var(--surface-2); }
+  .nav a.active { background: var(--accent-soft); color: #0F5A42; }
+  :root[data-theme="dark"] .nav a.active { color: #BFE6D3; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .nav a.active { color: #BFE6D3; } }
+  .nav a .badge { margin-left: auto; }
+  .nav a .ext { margin-left: auto; width: 14px; height: 14px; opacity: 0; color: var(--text-3); transition: opacity .15s; }
+  .nav a:hover .ext { opacity: 1; }
+  .sidebar .spacer { flex: 1; }
+  .sidebar .foot { border-top: 1px solid var(--border); margin-top: 14px; padding-top: 12px; display: flex; justify-content: flex-end; padding-right: 20px; color: var(--text-2); }
+  .badge { display: inline-flex; align-items: center; justify-content: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px; background: var(--critical); color: #fff; font-size: 12px; font-weight: 600; }
+
+  /* Map area */
+  .map-area { position: relative; overflow: hidden; background: var(--ground); }
+  #map { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  .pins { position: absolute; inset: 0; pointer-events: none; }
+  .pin { position: absolute; transform: translate(-50%, -100%); pointer-events: auto; display: flex; flex-direction: column; align-items: center; cursor: pointer; }
+  .pin .dot { width: 30px; height: 30px; border-radius: 50%; background: var(--surface); border: 2px solid var(--pin); color: var(--pin); display: grid; place-items: center; box-shadow: var(--shadow-sm); }
+  .pin .dot svg.i { width: 16px; height: 16px; stroke-width: 2; }
+  .pin .stem { width: 2px; height: 8px; background: var(--pin); }
+  .pin.sq .dot { border-radius: 6px; width: 24px; height: 24px; }
+  .pin.sq .dot svg.i { width: 13px; height: 13px; }
+  .pin .tip { position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; width: max-content; max-width: 240px; font-size: 12px; box-shadow: var(--shadow); display: none; z-index: 5; }
+  .pin .tip b { display: block; color: var(--ink); font-size: 13px; }
+  .pin:hover .tip, .pin:focus-visible .tip { display: block; }
+  .pin.pulse .dot::after { content: ""; position: absolute; inset: -6px; border-radius: inherit; border: 2px solid var(--pin); opacity: 0; animation: pulse 1.8s ease-out infinite; }
+  @keyframes pulse { 0% { transform: scale(0.8); opacity: .7; } 100% { transform: scale(1.5); opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) { .pin.pulse .dot::after { animation: none; } * { transition-duration: 0.01ms !important; } }
+
+  .mapbtn { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; box-shadow: var(--shadow-sm); color: var(--text); display: grid; place-items: center; }
+  .ctl-tl { position: absolute; top: 24px; left: 26px; width: 46px; height: 46px; }
+  .ctl-tr { position: absolute; top: 24px; right: 26px; display: flex; gap: 10px; }
+  .ctl-tr .group { display: flex; height: 46px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; box-shadow: var(--shadow-sm); overflow: hidden; }
+  .ctl-tr .group button { padding: 0 12px; display: grid; place-items: center; font-weight: 500; }
+  .ctl-tr .group button + button { border-left: 1px solid var(--border); }
+  .ctl-tr .mapbtn { width: 46px; height: 46px; color: var(--text-3); }
+  .ctl-br { position: absolute; right: 12px; bottom: 26px; display: flex; flex-direction: column; gap: 4px; align-items: center; }
+  .ctl-br .mapbtn { width: 40px; height: 40px; font-size: 22px; }
+  .ctl-bl { position: absolute; left: 12px; bottom: 12px; display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+  .scale { background: rgba(255,255,255,.7); border: 2px solid #4a4a4a; border-top: 0; padding: 1px 6px; font-size: 11px; color: #333; width: 86px; }
+  .mapbox { font-weight: 700; color: #6b7674; font-size: 15px; display: flex; align-items: center; gap: 4px; opacity: .85; }
+  .muni-chip { position: absolute; left: 50%; bottom: 26px; transform: translateX(-50%); max-width: calc(100% - 130px); display: flex; align-items: stretch; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; box-shadow: var(--shadow-sm); height: 46px; overflow: hidden; z-index: 3; }
+  .muni-chip > * { display: flex; align-items: center; gap: 8px; padding: 0 16px; font-weight: 500; border-left: 1px solid var(--border); }
+  .muni-chip > *:first-child { border-left: 0; min-width: 0; }
+  .muni-chip #chipAssetName { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .muni-chip button { flex: none; padding: 0 12px; }
+  .muni-chip button:hover { background: var(--surface-2); }
+  .muni-chip .on { color: var(--accent-deep); }
+
+  /* Bottom sheet */
+  .sheet { position: absolute; left: 0; right: 0; bottom: 0; height: 56%; min-height: 360px; max-height: 100%; background: var(--surface); border-top-left-radius: 16px; border-top-right-radius: 16px; box-shadow: 0 -8px 30px rgba(18,74,57,.16); transform: translateY(105%); transition: transform .38s cubic-bezier(.2,.8,.2,1), height .38s cubic-bezier(.2,.8,.2,1); display: flex; flex-direction: column; z-index: 4; }
+  .sheet.half { transform: translateY(0); }
+  .sheet.full { transform: translateY(0); height: 90%; }
+  .sheet .handle { display: grid; place-items: center; padding: 10px 0 4px; cursor: grab; }
+  .sheet .handle span { width: 44px; height: 5px; border-radius: 3px; background: var(--border-strong); }
+  .sheet-head { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 10px 14px; padding: 4px 26px 12px; border-bottom: 1px solid var(--border); }
+  .sheet-head .title { display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 1 1 320px; }
+  .sheet-head h2 { font-size: 20px; color: var(--ink); font-weight: 600; }
+  .sheet-head .meta { display: flex; flex-wrap: wrap; gap: 6px 14px; color: var(--text-2); font-size: 13px; align-items: center; }
+  .sheet-head .actions { margin-left: auto; display: flex; gap: 8px; align-items: center; flex: none; }
+  .btn { display: inline-flex; align-items: center; gap: 8px; height: 38px; padding: 0 14px; border-radius: 8px; border: 1px solid var(--border-strong); background: var(--surface); font-weight: 500; white-space: nowrap; }
+  .btn:hover { background: var(--surface-2); }
+  .btn.primary { background: var(--accent-deep); border-color: var(--accent-deep); color: #fff; }
+  .btn.primary:hover { background: #197a4d; }
+  .btn.icon { width: 38px; padding: 0; justify-content: center; }
+  .btn.sm { height: 32px; padding: 0 10px; font-size: 13px; }
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 168px), 1fr)); gap: 10px; padding: 14px 26px; border-bottom: 1px solid var(--border); }
+  .kpi { border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+  .kpi .lbl { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--text-3); font-weight: 600; }
+  .kpi .val { font-size: 16px; font-weight: 600; color: var(--ink); overflow-wrap: anywhere; line-height: 1.25; }
+  .kpi .sub { font-size: 12px; font-weight: 600; line-height: 1.3; display: flex; align-items: flex-start; gap: 5px; overflow-wrap: anywhere; margin-top: auto; }
+  .kpi .sub svg.i { width: 13px; height: 13px; stroke-width: 2.2; margin-top: 1px; }
+  .kpi .sub.good { color: var(--good); } .kpi .sub.warn { color: var(--warning); } .kpi .sub.crit { color: var(--critical); } .kpi .sub.neutral { color: var(--text-2); font-weight: 500; }
+  .tabs { display: flex; gap: 4px; padding: 0 26px; border-bottom: 1px solid var(--border); overflow-x: auto; scrollbar-width: none; flex: none; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tabs button { padding: 12px 14px; font-weight: 500; color: var(--text-2); border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap; display: flex; align-items: center; gap: 8px; }
+  .tabs button.active { color: var(--ink); border-bottom-color: var(--accent-deep); }
+  .tabs .count { background: var(--surface-2); border: 1px solid var(--border); color: var(--text-2); border-radius: 10px; font-size: 11px; padding: 0 7px; line-height: 18px; }
+  .tabs .count.hot { background: var(--critical-soft); color: var(--critical); border-color: transparent; }
+  .sheet-body { flex: 1; overflow: auto; padding: 18px 26px 28px; }
+  .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 18px; align-items: start; }
+  .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 290px), 1fr)); gap: 18px; align-items: start; }
+  .grid-2 > *, .grid-3 > * { min-width: 0; }
+  .block { border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .block > header { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 12px 16px; border-bottom: 1px solid var(--border); background: var(--surface-2); }
+  .block > header h3 { font-size: 14px; font-weight: 600; color: var(--ink); }
+  .block > header .right { margin-left: auto; display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-2); }
+  .block .body { padding: 12px 16px; }
+  .facts { display: grid; grid-template-columns: minmax(90px, max-content) minmax(0, 1fr); gap: 8px 16px; font-size: 13px; margin: 0; }
+  .facts dt { color: var(--text-2); }
+  .facts dd { margin: 0; font-weight: 500; overflow-wrap: anywhere; }
+  .chip { display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px; border-radius: 10px; font-size: 12px; font-weight: 600; line-height: 16px; max-width: 100%; text-align: left; }
+  .chip svg.i { flex: none; }
+  .chip.good { background: var(--good-soft); color: var(--good); }
+  .chip.warn { background: var(--warning-soft); color: var(--warning); }
+  .chip.crit { background: var(--critical-soft); color: var(--critical); }
+  .chip.info { background: var(--info-soft); color: var(--info); }
+  .chip.neutral { background: var(--surface-2); color: var(--text-2); border: 1px solid var(--border); }
+  .chip svg.i { width: 13px; height: 13px; stroke-width: 2.2; }
+  .list { display: flex; flex-direction: column; }
+  .row { display: grid; grid-template-columns: 34px minmax(0, 1fr) minmax(0, max-content); gap: 12px; padding: 11px 0; border-top: 1px solid var(--border); align-items: start; }
+  .row:first-child { border-top: 0; }
+  .row .ic { width: 34px; height: 34px; border-radius: 8px; display: grid; place-items: center; background: var(--surface-2); color: var(--text-2); }
+  .row .ic.crit { background: var(--critical-soft); color: var(--critical); }
+  .row .ic.warn { background: var(--warning-soft); color: var(--warning); }
+  .row .ic.good { background: var(--good-soft); color: var(--good); }
+  .row .ic.info { background: var(--info-soft); color: var(--info); }
+  .row .t { font-weight: 600; color: var(--text); overflow-wrap: anywhere; }
+  .row .d { overflow-wrap: anywhere; }
+  .row .r { max-width: 150px; }
+  .row .d { font-size: 12.5px; color: var(--text-2); margin-top: 2px; }
+  .row .r { text-align: right; font-size: 12px; color: var(--text-2); display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+  .risk-meter { display: flex; gap: 3px; margin-top: 4px; }
+  .risk-meter span { flex: 1; height: 6px; border-radius: 3px; background: var(--border); }
+  .risk-meter[data-level="1"] span:nth-child(1) { background: var(--good); }
+  .risk-meter[data-level="2"] span:nth-child(-n+2) { background: var(--warning); }
+  .risk-meter[data-level="3"] span:nth-child(-n+3) { background: var(--critical); }
+  .risk-meter[data-level="4"] span { background: var(--critical); }
+  .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)); gap: 12px; margin-bottom: 14px; }
+  .stat { border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 14px; }
+  .stat .lbl { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--text-3); font-weight: 600; }
+  .stat { min-width: 0; }
+  .stat .val { font-size: 19px; font-weight: 600; color: var(--ink); margin-top: 2px; overflow-wrap: anywhere; line-height: 1.2; }
+  .stat .delta { font-size: 12px; font-weight: 600; }
+  .delta.up { color: var(--good); } .delta.down { color: var(--critical); }
+  .chart-wrap { position: relative; }
+  .chart-wrap svg { width: 100%; height: auto; display: block; }
+  .legend { display: flex; gap: 16px; font-size: 12px; color: var(--text-2); margin: 6px 0 4px; flex-wrap: wrap; }
+  .legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; background: var(--c); }
+  .chart-tip { position: absolute; pointer-events: none; background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow); border-radius: 8px; padding: 8px 10px; font-size: 12px; display: none; white-space: nowrap; z-index: 2; }
+  .chart-tip b { color: var(--ink); }
+  .tbl-wrap { overflow-x: auto; }
+  table.tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table.tbl th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--text-3); font-weight: 600; padding: 6px 8px; border-bottom: 1px solid var(--border); }
+  table.tbl td { padding: 8px; border-bottom: 1px solid var(--border); }
+  table.tbl tr:last-child td { border-bottom: 0; }
+  table.tbl td.r, table.tbl th.r { text-align: right; }
+  .timeline { position: relative; padding-left: 22px; }
+  .timeline::before { content: ""; position: absolute; left: 7px; top: 8px; bottom: 8px; width: 2px; background: var(--border); }
+  .tl-item { position: relative; padding: 6px 0 14px; }
+  .tl-item::before { content: ""; position: absolute; left: -19px; top: 11px; width: 10px; height: 10px; border-radius: 50%; background: var(--surface); border: 2px solid var(--accent-deep); }
+  .tl-item.crit::before { border-color: var(--critical); background: var(--critical); }
+  .tl-item .when { font-size: 12px; color: var(--text-3); }
+  .tl-item .what { font-weight: 500; }
+  .empty { padding: 26px; text-align: center; color: var(--text-2); font-size: 13px; }
+
+  /* View toggle */
+  .seg { display: inline-flex; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 3px; gap: 2px; box-shadow: var(--shadow-sm); }
+  .seg button { display: inline-flex; align-items: center; gap: 7px; height: 38px; padding: 0 14px; border-radius: 6px; font-weight: 600; font-size: 13.5px; color: var(--text-2); white-space: nowrap; }
+  .seg button svg.i { width: 17px; height: 17px; }
+  .seg button.on { background: var(--accent-soft); color: var(--ink); }
+  .seg button:not(.on):hover { background: var(--surface-2); }
+  .map-area .seg { position: absolute; top: 24px; left: 84px; z-index: 3; }
+
+  /* Dashboard view */
+  .dash { display: none; grid-column: 2 / 4; min-width: 0; overflow: auto; background: var(--surface-2); }
+  .app.mode-dash .dash { display: block; }
+  .app.mode-dash .map-area, .app.mode-dash .panel { display: none; }
+  .dash-in { padding: 24px 28px 40px; display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+  .dash-head { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; }
+  .dash-head h1 { font-size: 24px; font-weight: 600; color: var(--ink); }
+  .dash-head p { margin: 2px 0 0; color: var(--text-2); font-size: 13.5px; }
+  .dash-head .right { margin-left: auto; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .dash-head .seg { box-shadow: none; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); gap: 12px; }
+  .tile { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; text-align: left; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+  .tile:hover { border-color: var(--border-strong); }
+  .tile.on { border-color: var(--accent-deep); box-shadow: 0 0 0 1px var(--accent-deep); }
+  .tile .lbl { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--text-3); font-weight: 600; }
+  .tile .val { font-size: 26px; font-weight: 600; color: var(--ink); line-height: 1.1; }
+  .tile .sub { font-size: 12.5px; color: var(--text-2); }
+  .tile .val .of { font-size: 14px; color: var(--text-3); font-weight: 500; }
+  .dash-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; min-width: 0; }
+  .dash-bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; padding: 14px 16px; border-bottom: 1px solid var(--border); }
+  .dash-bar .find { display: flex; align-items: center; gap: 8px; height: 38px; padding: 0 12px; border: 1px solid var(--border-strong); border-radius: 8px; flex: 1 1 220px; max-width: 340px; min-width: 0; color: var(--text-2); }
+  .dash-bar .find input { border: 0; outline: 0; background: transparent; flex: 1; min-width: 0; color: var(--text); }
+  .dash-bar select { height: 38px; border: 1px solid var(--border-strong); border-radius: 8px; padding: 0 10px; background: var(--surface); max-width: 100%; }
+  .dash-bar .count { margin-left: auto; color: var(--text-2); font-size: 13px; white-space: nowrap; }
+  .dtable-wrap { overflow-x: auto; border-radius: 0 0 12px 12px; }
+  table.dtable { border-collapse: separate; border-spacing: 0; width: 100%; font-size: 13px; }
+  table.dtable th { background: var(--surface-2); text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--text-3); font-weight: 600; padding: 10px 14px; border-bottom: 1px solid var(--border); white-space: nowrap; cursor: pointer; user-select: none; }
+  table.dtable th .arr { opacity: .35; margin-left: 4px; font-size: 10px; }
+  table.dtable th.sorted { color: var(--ink); } table.dtable th.sorted .arr { opacity: 1; }
+  table.dtable td { padding: 12px 14px; border-bottom: 1px solid var(--border); vertical-align: top; min-width: 172px; max-width: 260px; background: var(--surface); }
+  table.dtable tr:last-child td { border-bottom: 0; }
+  table.dtable tbody tr { cursor: pointer; }
+  table.dtable tbody tr:hover td { background: var(--accent-tint); }
+  table.dtable tbody tr.flash td { animation: flash 1.8s ease-out; }
+  @keyframes flash { from { background: var(--accent-soft); } to { background: var(--surface); } }
+  table.dtable th:first-child, table.dtable td:first-child { position: sticky; left: 0; z-index: 1; min-width: 230px; box-shadow: 1px 0 0 var(--border); }
+  table.dtable th:first-child { z-index: 2; }
+  table.dtable td.c-act, table.dtable th.c-act { min-width: 0; width: 44px; padding-left: 4px; padding-right: 8px; cursor: default; }
+  .d-addr { font-weight: 600; color: var(--ink); font-size: 14px; }
+  .d-sub { color: var(--text-2); font-size: 12px; margin-top: 2px; }
+  .d-main { font-weight: 500; overflow-wrap: anywhere; }
+  .d-st { display: flex; align-items: flex-start; gap: 6px; font-size: 12px; color: var(--text-2); margin-top: 3px; }
+  .sdot { width: 8px; height: 8px; border-radius: 50%; flex: none; margin-top: 4px; background: var(--text-3); }
+  .sdot.good { background: var(--good); } .sdot.warn { background: var(--warning); } .sdot.crit { background: var(--critical); } .sdot.info { background: var(--info); }
+  .d-more { width: 30px; height: 30px; border-radius: 6px; display: grid; place-items: center; color: var(--text-2); font-weight: 700; letter-spacing: 1px; }
+  .d-more:hover { background: var(--surface-2); }
+  .colmenu { min-width: 210px; max-height: 340px; overflow: auto; }
+  .colmenu label { display: flex; align-items: center; gap: 10px; padding: 7px 10px; border-radius: 6px; font-size: 13.5px; cursor: pointer; }
+  .colmenu label:hover { background: var(--surface-2); }
+  .colmenu input { accent-color: var(--accent-deep); }
+  .dash-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr)); gap: 18px; align-items: start; }
+  .dash-2 .dash-card > header { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--border); }
+  .dash-2 .dash-card > header h3 { font-size: 15px; font-weight: 600; color: var(--ink); }
+  .dash-2 .dash-card > header .right { margin-left: auto; }
+  .dash-2 .dash-card .body { padding: 8px; }
+
+  /* Collapsed right panel */
+  .app.panel-collapsed { grid-template-columns: var(--sidebar-w) minmax(0, 1fr) 56px; }
+  .app.panel-collapsed .pview, .app.panel-collapsed .ptabs [data-pt] { display: none; }
+  .app.panel-collapsed .ptabs { padding: 0; justify-content: center; border-bottom: 0; }
+  .app.panel-collapsed .ptabs .collapse { margin: 0; }
+  .app.panel-collapsed .ptabs .collapse svg { transform: rotate(180deg); }
+
+  /* Right panel */
+  .panel { border-left: 1px solid var(--border); display: flex; flex-direction: column; min-width: 0; background: var(--surface); }
+  .ptabs { display: flex; align-items: center; height: 66px; border-bottom: 1px solid var(--border); padding: 0 12px 0 22px; }
+  .ptabs button { position: relative; height: 66px; padding: 0 16px; color: var(--text-2); display: grid; place-items: center; }
+  .ptabs button.active { color: var(--ink); }
+  .ptabs button.active::after { content: ""; position: absolute; left: 12px; right: 12px; bottom: -1px; height: 3px; background: var(--accent-deep); border-radius: 2px 2px 0 0; }
+  .ptabs button svg.i { width: 24px; height: 24px; }
+  .ptabs .badge { position: absolute; top: 14px; right: 4px; height: 17px; min-width: 17px; font-size: 11px; }
+  .ptabs .collapse { margin-left: auto; color: var(--text-2); }
+  .pview { display: none; flex: 1; flex-direction: column; min-height: 0; }
+  .pview.active { display: flex; }
+  .phead { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; padding: 22px 28px 12px; }
+  .phead h1 { font-size: 22px; font-weight: 600; color: var(--ink); }
+  .phead .tools { margin-left: auto; display: flex; gap: 6px; align-items: center; }
+  .phead .tools button.txt { width: auto; height: 34px; padding: 0 12px; display: inline-flex; align-items: center; gap: 6px; font-weight: 600; font-size: 13px; white-space: nowrap; color: var(--ink); }
+  .phead .tools button.txt svg.i { width: 15px; height: 15px; stroke-width: 2.2; }
+  .phead .tools button.txt.solid { background: var(--accent-deep); color: #fff; }
+  .phead .tools button.txt.solid:hover { background: #197a4d; }
+  .phead .tools button { width: 34px; height: 34px; border-radius: 6px; display: grid; place-items: center; color: var(--text-2); }
+  .phead .tools button.on { color: var(--ink); background: var(--accent-soft); }
+  .phead .tools button:hover { background: var(--surface-2); }
+  .search-box { margin: 4px 28px 0; border: 1px solid var(--border-strong); border-radius: 8px; overflow: hidden; }
+  .search-box .in { display: flex; align-items: center; height: 46px; padding: 0 14px; gap: 10px; }
+  .search-box input { flex: 1; border: 0; outline: 0; background: transparent; font-size: 15px; min-width: 0; }
+  .search-box input::placeholder { color: var(--text-3); }
+  .search-box .selects { display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid var(--border-strong); }
+  .search-box .selects label { position: relative; display: block; }
+  .search-box .selects label + label { border-left: 1px solid var(--border-strong); }
+  .search-box select { width: 100%; height: 42px; border: 0; background: transparent; padding: 0 36px 0 14px; appearance: none; -webkit-appearance: none; cursor: pointer; }
+  .search-box .selects label::after { content: ""; position: absolute; right: 14px; top: 16px; width: 8px; height: 8px; border-right: 1.7px solid var(--text-2); border-bottom: 1.7px solid var(--text-2); transform: rotate(45deg); pointer-events: none; }
+  .pscroll { flex: 1; overflow: auto; padding: 22px 16px 24px 16px; }
+  .cards { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; min-width: 0; }
+  .card { background: var(--surface); border-radius: 12px; box-shadow: 0 2px 10px rgba(18,74,57,.10); border: 2px solid transparent; padding: 16px 16px 12px; display: flex; flex-direction: column; gap: 8px; cursor: pointer; position: relative; min-width: 0; }
+  .card:hover { box-shadow: var(--shadow); }
+  .card.selected { border-color: var(--accent-deep); }
+  .card canvas { width: 100%; aspect-ratio: 1.55; border-radius: 6px; display: block; background: var(--ground); }
+  .card .thumb { position: relative; }
+  .card .thumb .alert-pill { position: absolute; top: 8px; right: 8px; }
+  .card .thumb .cls { position: absolute; left: 8px; bottom: 8px; background: rgba(255,255,255,.92); color: var(--ink); font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; }
+  .card .date { font-size: 12px; color: var(--text-2); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .card .date svg.i { width: 14px; height: 14px; }
+  .card .name { font-weight: 600; font-size: 15px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .card .sub { font-size: 12px; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .card .layers-line { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 2px; }
+  .card .layers-line i { width: 22px; height: 22px; border-radius: 6px; display: grid; place-items: center; background: var(--surface-2); color: var(--text-2); }
+  .card .layers-line i svg.i { width: 13px; height: 13px; }
+  .card .foot { display: flex; align-items: center; margin-top: auto; padding-top: 10px; }
+  .card .foot .link { color: var(--ink); font-weight: 600; font-size: 14px; text-align: left; min-width: 0; }
+  .card .foot .more { margin-left: auto; color: var(--text-2); width: 30px; height: 30px; border-radius: 6px; display: grid; place-items: center; letter-spacing: 1px; font-weight: 700; }
+  .card .foot .more:hover { background: var(--surface-2); }
+  .cards.list { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .cards.list .card { display: grid; grid-template-columns: 96px minmax(0, 1fr) auto; gap: 6px 14px; align-items: center; padding: 10px 12px; }
+  .cards.list .card .thumb { grid-row: span 3; }
+  .cards.list .card canvas { aspect-ratio: 1.3; }
+  .cards.list .card .thumb .cls, .cards.list .card .thumb .alert-pill { display: none; }
+  .cards.list .card .date { grid-column: 2; }
+  .cards.list .card .layers-line { grid-column: 2 / 4; }
+  .cards.list .card .foot { grid-column: 3; grid-row: 1 / 3; padding: 0; flex-direction: column; gap: 6px; align-items: flex-end; }
+  .cards.list .card .foot .more { margin-left: 0; }
+  .menu { position: absolute; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; box-shadow: var(--shadow); padding: 6px; display: none; z-index: 20; min-width: 200px; }
+  .menu.open { display: block; }
+  .menu button { display: flex; width: 100%; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 6px; text-align: left; font-size: 13.5px; }
+  .menu button:hover { background: var(--surface-2); }
+  .menu button.danger { color: var(--critical); }
+  .menu hr { border: 0; border-top: 1px solid var(--border); margin: 6px 0; }
+
+  /* Layers view */
+  .lgroup { border-top: 1px solid var(--border); }
+  .lgroup > button.hdr { display: flex; width: 100%; align-items: center; gap: 10px; padding: 14px 12px; font-size: 16px; font-weight: 500; color: var(--ink); }
+  .lgroup > button.hdr .st { margin-left: auto; display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-2); font-weight: 500; }
+  .lgroup > button.hdr .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent-deep); }
+  .lgroup > button.hdr .chev { transition: transform .2s; }
+  .lgroup.open > button.hdr .chev { transform: rotate(180deg); }
+  .lgroup .items { display: none; padding: 0 8px 10px 12px; }
+  .lgroup.open .items { display: block; }
+  .layer { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 10px; align-items: center; padding: 9px 6px; border-radius: 8px; }
+  .layer:hover { background: var(--surface-2); }
+  .layer .n { font-size: 14px; font-weight: 500; }
+  .layer .s { font-size: 12px; color: var(--text-2); margin-top: 1px; }
+  .layer.off .n { color: var(--text-2); }
+  .bell { width: 32px; height: 32px; border-radius: 8px; display: grid; place-items: center; color: var(--text-3); }
+  .bell:hover { background: var(--accent-soft); color: var(--ink); }
+  .bell.on { color: var(--accent-deep); }
+  .bell.on svg.i { fill: var(--accent-deep); stroke: var(--accent-deep); }
+  .bell[disabled] { opacity: .35; cursor: not-allowed; }
+  .switch { width: 40px; height: 22px; border-radius: 11px; background: var(--border-strong); position: relative; transition: background .2s; flex: none; }
+  .switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: left .2s; box-shadow: 0 1px 2px rgba(0,0,0,.25); }
+  .switch.on { background: var(--accent-deep); }
+  .switch.on::after { left: 21px; }
+  .asset-ctx { margin: 8px 28px 6px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; font-size: 13px; background: var(--surface-2); }
+  .asset-ctx b { color: var(--ink); }
+  .asset-ctx select { margin-left: auto; min-width: 0; border: 1px solid var(--border-strong); border-radius: 6px; padding: 4px 8px; background: var(--surface); font-size: 13px; max-width: 200px; }
+
+  /* Alerts view */
+  .afilters { display: flex; gap: 6px; padding: 0 28px 10px; flex-wrap: wrap; }
+  .afilters button { padding: 5px 11px; border-radius: 999px; border: 1px solid var(--border-strong); font-size: 12.5px; font-weight: 500; color: var(--text-2); }
+  .afilters button.on { background: var(--accent-soft); border-color: transparent; color: var(--ink); }
+  .alert { display: grid; grid-template-columns: 38px 1fr; gap: 12px; padding: 12px 12px; border-radius: 10px; cursor: pointer; border: 1px solid transparent; }
+  .alert:hover { background: var(--surface-2); }
+  .alert.unread { border-color: var(--border); }
+  .alert .ic { width: 38px; height: 38px; border-radius: 10px; display: grid; place-items: center; }
+  .alert .ic.crit { background: var(--critical-soft); color: var(--critical); }
+  .alert .ic.warn { background: var(--warning-soft); color: var(--warning); }
+  .alert .ic.good { background: var(--good-soft); color: var(--good); }
+  .alert .ic.info { background: var(--info-soft); color: var(--info); }
+  .alert .top { display: flex; align-items: center; gap: 8px; }
+  .alert .top .t { font-weight: 600; font-size: 14px; flex: 1; min-width: 0; }
+  .alert .top .w { font-size: 12px; color: var(--text-3); white-space: nowrap; }
+  .alert .top .u { width: 8px; height: 8px; border-radius: 50%; background: var(--accent-deep); flex: none; }
+  .alert .d { font-size: 13px; color: var(--text-2); margin-top: 3px; }
+  .alert .a { font-size: 12px; color: var(--ink); font-weight: 600; margin-top: 6px; display: flex; align-items: center; gap: 6px; }
+  .rules { padding: 4px 12px 0; }
+  .rules h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--text-3); padding: 10px 12px 6px; }
+  .rule { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; padding: 10px 12px; border-top: 1px solid var(--border); font-size: 13px; }
+  .rule .n { font-weight: 600; }
+  .rule .s { color: var(--text-2); margin-top: 2px; font-size: 12px; }
+
+  /* Modal / drawer */
+  .overlay { position: fixed; inset: 0; background: rgba(18,40,32,.35); display: none; z-index: 50; }
+  .overlay.open { display: block; }
+  .modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: min(560px, calc(100vw - 32px)); background: var(--surface); border-radius: 14px; box-shadow: var(--shadow); display: none; z-index: 51; max-height: calc(100vh - 40px); overflow: auto; }
+  .modal.open { display: block; }
+  .modal header { display: flex; align-items: center; gap: 10px; padding: 18px 22px 12px; }
+  .modal header h2 { font-size: 18px; color: var(--ink); font-weight: 600; }
+  .modal header .x { margin-left: auto; width: 32px; height: 32px; border-radius: 6px; display: grid; place-items: center; color: var(--text-2); }
+  .modal .mbody { padding: 4px 22px 22px; display: flex; flex-direction: column; gap: 14px; }
+  .modal .mfoot { padding: 12px 22px 20px; display: flex; justify-content: flex-end; gap: 8px; }
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field label { font-size: 12px; font-weight: 600; color: var(--text-2); }
+  .field input[type="text"], .field select { height: 42px; border: 1px solid var(--border-strong); border-radius: 8px; padding: 0 12px; background: var(--surface); }
+  .field .opts { display: flex; gap: 8px; flex-wrap: wrap; }
+  .field .opts label { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--border-strong); border-radius: 999px; padding: 6px 12px; font-size: 13px; font-weight: 500; color: var(--text); cursor: pointer; }
+  .field .opts label:has(input:checked) { background: var(--accent-soft); border-color: transparent; color: var(--ink); }
+  .field .opts input { accent-color: var(--accent-deep); margin: 0; }
+  .suggest { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; display: none; }
+  .suggest.open { display: block; }
+  .suggest button { display: grid; grid-template-columns: 24px 1fr auto; gap: 10px; width: 100%; padding: 10px 12px; text-align: left; align-items: center; border-top: 1px solid var(--border); }
+  .suggest button:first-child { border-top: 0; }
+  .suggest button:hover { background: var(--surface-2); }
+  .suggest .sa { font-weight: 500; }
+  .suggest .sc { font-size: 12px; color: var(--text-2); }
+  .preview { border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; display: grid; grid-template-columns: 110px 1fr; gap: 14px; align-items: center; }
+  .preview canvas { width: 110px; height: 80px; border-radius: 6px; display: block; }
+  .preview .pa { font-weight: 600; color: var(--ink); }
+  .preview .pd { font-size: 12.5px; color: var(--text-2); margin-top: 2px; }
+  .checks { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 14px; }
+  .checks label { display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; }
+  .checks input { accent-color: var(--accent-deep); }
+
+  .toast { position: fixed; left: 50%; bottom: 28px; transform: translate(-50%, 20px); background: var(--ink); color: #fff; padding: 10px 16px; border-radius: 8px; font-weight: 500; font-size: 13.5px; opacity: 0; transition: all .25s; z-index: 60; pointer-events: none; display: flex; gap: 10px; align-items: center; box-shadow: var(--shadow); }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+  .toast svg.i { width: 18px; height: 18px; stroke: #8FE3BB; }
+
+  @media (max-width: 1280px) { :root { --panel-w: 400px; --sidebar-w: 224px; } .nav a { font-size: 15px; padding: 11px 12px; gap: 10px; } .cards { grid-template-columns: minmax(0, 1fr); } .sheet-head, .kpis, .tabs, .sheet-body { padding-left: 18px; padding-right: 18px; } .phead { padding-left: 20px; padding-right: 20px; } .search-box, .asset-ctx { margin-left: 20px; margin-right: 20px; } .afilters { padding-left: 20px; padding-right: 20px; } }
+  @media (max-width: 1100px) { .map-area .seg button span { display: none; } }
+  @media (max-width: 980px) {
+    .app { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto; height: auto; min-height: 100vh; overflow: visible; }
+    body { overflow: auto; }
+    .sidebar { flex-direction: row; align-items: center; padding: 10px 16px; border-right: 0; border-bottom: 1px solid var(--border); gap: 6px; overflow-x: auto; }
+    .logo { padding: 0 12px 0 0; font-size: 20px; } .nav { flex-direction: row; } .nav a { padding: 8px 12px; font-size: 14px; }
+    .sidebar .spacer, .sidebar .foot, .sidebar .bottom { display: none; }
+    .map-area { height: 70vh; } .panel { border-left: 0; border-top: 1px solid var(--border); max-height: 80vh; }
+    .dash { grid-column: 1; }
+    .sheet.half { transform: translateY(30%); }
+  }
+</style>
+</head>
+<body>
+<div class="app mode-dash" id="app">
+  <!-- ===== Sidebar ===== -->
+  <aside class="sidebar">
+    <a class="logo" href="https://app.landlogic.ai/portal" target="_blank" rel="noopener" title="LandLogic Portal"><svg viewBox="0 0 780 150" role="img" aria-label="LandLogic" xmlns="http://www.w3.org/2000/svg"><g fill="currentColor"><path d="M144.1,116.9V25.9c0-1.2.8-2,2.1-2h15.8c1.3,0,2.1.8,2.1,2v75.8h29.9c1.3,0,2.1.8,2.1,2v13.2c0,1.2-.8,2-2.1,2h-47.8c-1.3,0-2.1-.8-2.1-2Z"/><path d="M202,85.7c0-19.7,13.3-34.9,32.6-34.9s17.8,4.1,22.4,11l.3-7.3c0-1.2.8-2,2.1-2h13.7c1.3,0,2.1.8,2.1,2v62.5c0,1.2-1,2-2.2,2h-13.5c-1.3,0-2.1-.8-2.1-2l-.3-7.3c-4.8,6.8-12.2,11-22.4,11-19.3,0-32.6-15.1-32.6-34.9ZM238.6,103.5c10.2,0,17.3-7.1,17.3-17.8s-7.1-17.8-17.3-17.8-17.8,7.2-17.8,17.8c0,10.7,7.6,17.8,17.8,17.8Z"/><path d="M290.1,116.9v-62.5c0-1.2.8-2,2.1-2h14.5c1.3,0,2.1.5,2.1,2.2l.6,7.9c3.9-6.8,10.5-11.7,20.7-11.7s24.8,10,24.8,27.4v38.7c0,1.2-1,2-2.2,2h-15c-1.3,0-2.1-.8-2.1-2v-34.5c0-9.4-4.5-14.4-12.7-14.4s-13.4,5-13.4,14.4v34.5c0,1.2-.8,2-2.1,2h-15.1c-1.3,0-2.1-.8-2.1-2Z"/><path d="M365.8,85.7c0-19.7,13.3-34.9,32.6-34.9s16.5,3.4,21.1,9.4V25.9c0-1.2.8-2,2.1-2h15.2c1.3,0,2.1.8,2.1,2v91c0,1.2-1,2-2.2,2h-13.6c-1.3,0-2.1-.8-2.1-2l-.3-7.3c-4.8,6.8-12.2,11-22.4,11-19.3,0-32.6-15.1-32.6-34.9ZM402.4,103.5c10.2,0,17.3-7.1,17.3-17.8s-7.1-17.8-17.3-17.8-17.8,7.2-17.8,17.8,7.6,17.8,17.8,17.8Z"/><path d="M455.9,116.9V25.9c0-1.2.8-2,2.1-2h15.8c1.3,0,2.1.8,2.1,2v75.8h29.9c1.3,0,2.1.8,2.1,2v13.2c0,1.2-.8,2-2.1,2h-47.8c-1.3,0-2.1-.8-2.1-2Z"/><path d="M512.5,85.7c0-19.7,15.2-34.9,35.9-34.9s35.8,15.2,35.8,34.9-15.2,34.9-35.8,34.9c-20.7,0-35.9-15.2-35.9-34.9ZM548.5,103.3c9.7,0,17.2-6.8,17.2-17.7s-7.6-17.7-17.2-17.7-17.3,6.8-17.3,17.7,7.5,17.7,17.3,17.7Z"/><path d="M601.1,139.2c-1.4-.9-1.5-2.7-.8-3.9l4.1-7.5c.7-1.4,2-1.9,3.5-1.1,6,3.3,12.2,4.9,18.2,4.9,9.7,0,19.6-4.1,19.6-16.4v-7.2c-4.3,6-11.5,9.6-21.3,9.6-19.3,0-32.3-13.7-32.3-33.4s13-33.4,32.3-33.4,17.1,3.5,21.4,9.8l.3-6.1c0-1.2,1-2,2.2-2h13.7c1.3,0,2.1.8,2.1,2v60.8c0,23.9-19.3,31.5-36.2,31.5s-20-2.7-26.7-7.6ZM628,100.7c9.8,0,16.8-6.4,16.8-16.6s-7-16.6-16.8-16.6-17.2,6.5-17.2,16.6c0,10.2,7.3,16.6,17.2,16.6Z"/><path d="M678,30.1c0-5.7,4.6-10.3,10.8-10.3s10.6,4.6,10.6,10.3-4.5,10.5-10.6,10.5c-6.2,0-10.8-4.6-10.8-10.5ZM679,54.4c0-1.2.8-2,2.1-2h15.2c1.3,0,2.1.8,2.1,2v62.5c0,1.2-.8,2-2.1,2h-15.2c-1.3,0-2.1-.8-2.1-2v-62.5Z"/><path d="M710.9,85.4c0-19.7,15.2-34.6,35.8-34.6s20.7,4.6,26.6,12c.8.9.6,2-.3,2.8l-8.4,8c-1.1,1.1-2.7.9-3.6,0-3.8-3.7-7.8-5.6-13.4-5.6-10.9,0-18,7.6-18,17.4s7.1,17.9,18.5,17.9,9.4-1.9,13.2-5.6c1-.9,2.5-1.1,3.6,0l8.4,8c.8.8,1.1,1.9.3,2.9-5.9,7.3-15.2,12-26.3,12-20.8,0-36.2-15.2-36.2-35.2Z"/></g><path d="M23.6,79.9c-1.3-1.3-2.7-2.7-4.1-4.1l-13.1,13.1c-1.3,1.3-1.3,3.5,0,4.8l14.4,14.4c1.3,1.3,3.5,1.3,4.8,0l6.7-6.7c3.4-3.4,0-12.9-8.7-21.6Z" fill="#0082C8"/><path d="M28.2,75.4c-2.2-2.2-4.6-4.6-7.1-7.1,1.7,1.7,1.7,4.4,0,6l-1.6,1.6c1.4,1.4,2.8,2.8,4.1,4.1,8.7,8.7,12.1,18.2,8.7,21.6,5.8-5.8,4.6-17.4-4.2-26.2Z" fill="#006FA8"/><path d="M20.8,34.4l-12.3,12.3-2.1,2.1c-1.3,1.3-1.3,3.5,0,4.8l14.7,14.7c2.5,2.5,4.9,4.9,7.1,7.1,8.7,8.7,9.9,20.4,4.2,26.2l7.8-7.8,5.6-5.6,2.1-2.1,12.3-12.3c1.3-1.3,1.3-3.5,0-4.8l-14.4-14.4-20.1-20.1c-1.3-1.3-3.5-1.3-4.8,0Z" fill="#00A8FF"/><path d="M79.2,79.9l-4.1-4.1-40.9,40.9c-1.3,1.3-1.3,3.5,0,4.8l14.4,14.4c1.3,1.3,3.5,1.3,4.8,0l34.5-34.5c3.4-3.4,0-12.9-8.7-21.6Z" fill="#00A36B"/><path d="M77.9,70.5c.3,1.3-.1,2.8-1.2,3.8h0l-1.6,1.6,4.1,4.1c8.7,8.7,12.1,18.2,8.7,21.6,5.8-5.8,4.6-17.4-4.2-26.2l-7.1-7.1c.6.6,1,1.4,1.2,2.2Z" fill="#00875A"/><path d="M51.7,5.6c-.4,0-.9,0-1.3,0-.2,0-.4.1-.6.2-.4.2-.8.4-1.1.8l-12.3,12.3-2.1,2.1c-.2.2-.3.3-.4.5-.4.6-.6,1.2-.6,1.9s0,.4,0,.6c0,.4.3.8.5,1.2.1.2.3.4.4.5l42.5,42.5,7.1,7.1c8.7,8.7,9.9,20.4,4.2,26.2l7.8-7.8,5.6-5.6,2.1-2.1,12.3-12.3c1.3-1.3,1.3-3.5,0-4.8l-14.4-14.4L53.5,6.6c-.3-.3-.7-.6-1.1-.8-.2,0-.4-.1-.6-.2Z" fill="#00D88A"/></svg></a>
+    <nav class="nav">
+      <a href="https://app.landlogic.ai/portal" target="_blank" rel="noopener"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="8" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/><rect x="13" y="13" width="8" height="8" rx="1.5"/></svg>Portal<svg class="i ext" viewBox="0 0 24 24"><path d="M14 5h5v5M19 5l-8 8M18 14v4a1 1 0 01-1 1H6a1 1 0 01-1-1V7a1 1 0 011-1h4"/></svg></a>
+      <a href="https://app.landlogic.ai/land" target="_blank" rel="noopener"><svg class="i" viewBox="0 0 24 24"><path d="M3 20l6-12 4 7 2-3 6 8z"/></svg>Site Assessment<svg class="i ext" viewBox="0 0 24 24"><path d="M14 5h5v5M19 5l-8 8M18 14v4a1 1 0 01-1 1H6a1 1 0 01-1-1V7a1 1 0 011-1h4"/></svg></a>
+      <a href="https://app.landlogic.ai/site-selection" target="_blank" rel="noopener"><svg class="i" viewBox="0 0 24 24"><path d="M4 5l5-2 6 2 5-2v14l-5 2-6-2-5 2z"/><path d="M9 3v14M15 5v14"/></svg>Site Selection<svg class="i ext" viewBox="0 0 24 24"><path d="M14 5h5v5M19 5l-8 8M18 14v4a1 1 0 01-1 1H6a1 1 0 01-1-1V7a1 1 0 011-1h4"/></svg></a>
+      <a href="https://app.landlogic.ai/projects" target="_blank" rel="noopener"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2M3 12h18"/></svg>My Projects<svg class="i ext" viewBox="0 0 24 24"><path d="M14 5h5v5M19 5l-8 8M18 14v4a1 1 0 01-1 1H6a1 1 0 01-1-1V7a1 1 0 011-1h4"/></svg></a>
+      <a href="#" class="active"><svg class="i" viewBox="0 0 24 24"><path d="M12 3a7 7 0 017 7c0 5-7 11-7 11S5 15 5 10a7 7 0 017-7z"/><circle cx="12" cy="10" r="2.4"/><path d="M19 4l2 2M3 4L5 6" stroke-width="2"/></svg>Asset Monitor<span class="badge" id="navBadge">4</span></a>
+    </nav>
+    <div class="spacer"></div>
+    <nav class="nav bottom">
+      <a href="#" data-nav><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 015 0c0 1.7-2.5 2-2.5 3.5M12 17h.01"/></svg>Help</a>
+      <a href="#" data-nav><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>Account</a>
+      <a href="#" data-nav><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M14 12H7M10 9l-3 3 3 3"/></svg>Logout</a>
+    </nav>
+    <div class="foot"><svg class="i" viewBox="0 0 24 24" style="width:16px;height:16px"><path d="M15 6l-6 6 6 6"/></svg></div>
+  </aside>
+
+  <!-- ===== Map ===== -->
+  <main class="map-area" id="mapArea">
+    <canvas id="map"></canvas>
+    <div class="pins" id="pins"></div>
+
+    <div class="seg" id="segMap" role="group" aria-label="View"><button data-mode="dash" title="Dashboard view"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M3 15h18M9 10v10"/></svg><span>Dashboard</span></button><button data-mode="map" title="Map view"><svg class="i" viewBox="0 0 24 24"><path d="M4 5l5-2 6 2 5-2v14l-5 2-6-2-5 2z"/><path d="M9 3v14M15 5v14"/></svg><span>Map</span></button></div>
+    <button class="mapbtn ctl-tl" title="Search the map"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg></button>
+    <div class="ctl-tr">
+      <div class="group">
+        <button title="Tools"><svg class="i" viewBox="0 0 24 24"><path d="M14.5 5.5a3.5 3.5 0 004.9 4.3L21 12l-8 8-3-3 8-8-1.5-1.5-8 8-3-3 8-8 2.3 1.1z"/></svg></button>
+        <button title="Basemap"><svg class="i" viewBox="0 0 24 24"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z"/><path d="M9 4v14M15 6v14"/></svg></button>
+        <button title="Toggle 3D">2D</button>
+      </div>
+      <button class="mapbtn" title="Map info"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg></button>
+    </div>
+    <div class="ctl-br">
+      <button class="mapbtn" title="Zoom in">+</button>
+      <button class="mapbtn" title="Zoom out">−</button>
+      <button class="mapbtn" title="Reset bearing"><svg class="i" viewBox="0 0 24 24"><path d="M12 3l4 9h-8z" fill="currentColor"/><path d="M12 21l-4-9h8z"/></svg></button>
+    </div>
+    <div class="ctl-bl">
+      <div class="scale num" id="scaleBar">30 m</div>
+      <div class="mapbox"><svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><circle cx="10" cy="10" r="9" fill="#6b7674"/><path d="M6 14c3-1 6-4 7-8-4 1-7 4-7 8z" fill="#fff"/></svg>mapbox</div>
+    </div>
+
+    <div class="muni-chip" id="muniChip">
+      <div id="chipAsset"><svg class="i" viewBox="0 0 24 24" style="width:18px;height:18px"><path d="M12 3a7 7 0 017 7c0 5-7 11-7 11S5 15 5 10a7 7 0 017-7z"/><circle cx="12" cy="10" r="2.4"/></svg><span id="chipAssetName">Select an asset</span></div>
+      <button id="chipSheet" title="Open asset dashboard"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 14h18M8 14v6M14 14v6"/></svg></button>
+      <button id="chipLayers" title="Monitored layers"><svg class="i" viewBox="0 0 24 24"><path d="M12 4l9 5-9 5-9-5z"/><path d="M3 14l9 5 9-5"/></svg></button>
+      <button id="chipAlerts" title="Alerts"><svg class="i" viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0112 0v5l2 2H4z"/><path d="M10 20a2 2 0 004 0"/></svg></button>
+      <button id="chipReport" title="Generate monitoring report"><svg class="i" viewBox="0 0 24 24"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5M10 13h6M10 17h6"/></svg></button>
+    </div>
+
+    <!-- Bottom sheet dashboard -->
+    <section class="sheet" id="sheet" aria-label="Asset dashboard">
+      <div class="handle" id="sheetHandle" title="Drag to expand or collapse"><span></span></div>
+      <div class="sheet-head">
+        <div class="title">
+          <h2 id="shTitle">12 Greenlaw Ave, Toronto</h2>
+          <div class="meta" id="shMeta"></div>
+        </div>
+        <div class="actions">
+          <button class="btn" id="shLayers"><svg class="i" viewBox="0 0 24 24"><path d="M12 4l9 5-9 5-9-5z"/><path d="M3 14l9 5 9-5"/></svg>Layers</button>
+          <button class="btn primary" id="shReport"><svg class="i" viewBox="0 0 24 24"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5M10 13h6M10 17h6"/></svg>Monitoring report</button>
+          <button class="btn icon" id="shExpand" title="Expand"><svg class="i" viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></svg></button>
+          <button class="btn icon" id="shClose" title="Close"><svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+        </div>
+      </div>
+      <div class="kpis" id="shKpis"></div>
+      <div class="tabs" id="shTabs"></div>
+      <div class="sheet-body" id="shBody"></div>
+    </section>
+  </main>
+
+  <!-- ===== Dashboard view ===== -->
+  <section class="dash" id="dash" aria-label="Asset dashboard">
+    <div class="dash-in">
+      <div class="dash-head">
+        <div><h1>Asset Monitor</h1><p id="dashSub"></p></div>
+        <div class="right"><div class="seg" id="segDash" role="group" aria-label="View"><button data-mode="dash" title="Dashboard view"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M3 15h18M9 10v10"/></svg><span>Dashboard</span></button><button data-mode="map" title="Map view"><svg class="i" viewBox="0 0 24 24"><path d="M4 5l5-2 6 2 5-2v14l-5 2-6-2-5 2z"/><path d="M9 3v14M15 5v14"/></svg><span>Map</span></button></div><button class="btn primary" id="dashAdd"><svg class="i" viewBox="0 0 24 24" style="width:16px;height:16px;stroke-width:2.2"><path d="M12 5v14M5 12h14"/></svg>Add asset</button></div>
+      </div>
+      <div class="tiles" id="tiles"></div>
+      <div class="dash-card">
+        <div class="dash-bar">
+          <label class="find"><svg class="i" viewBox="0 0 24 24" style="width:17px;height:17px"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg><input id="dashSearch" type="text" placeholder="Search address, zoning, designation"></label>
+          <select id="dashClass" aria-label="Asset class"><option value="all">All asset classes</option><option>Residential</option><option>Mixed-use</option><option>Commercial</option><option>Industrial</option><option>Agricultural</option></select>
+          <select id="dashMuni" aria-label="Municipality"></select>
+          <button class="btn" id="dashCols"><svg class="i" viewBox="0 0 24 24" style="width:16px;height:16px"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16M15 4v16"/></svg>Columns</button>
+          <span class="count" id="dashCount"></span>
+        </div>
+        <div class="dtable-wrap"><table class="dtable" id="dtable"><thead></thead><tbody></tbody></table></div>
+      </div>
+      <div class="dash-2">
+        <div class="dash-card"><header><h3>Latest flags across your assets</h3><div class="right"><button class="btn sm" id="dashMarkRead">Mark all read</button></div></header><div class="body" id="dashAlerts"></div></div>
+        <div class="dash-card"><header><h3>Active alert rules</h3><div class="right"><span id="dashRuleCount" style="color:var(--text-2);font-size:13px"></span></div></header><div class="body" id="dashRules" style="padding:0 4px 4px"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Right panel ===== -->
+  <aside class="panel">
+    <div class="ptabs">
+      <button class="active" data-pt="watch" title="Watchlist"><svg class="i" viewBox="0 0 24 24"><path d="M12 3a7 7 0 017 7c0 5-7 11-7 11S5 15 5 10a7 7 0 017-7z"/><circle cx="12" cy="10" r="2.4"/></svg></button>
+      <button data-pt="layers" title="Monitored layers"><svg class="i" viewBox="0 0 24 24"><path d="M12 4l9 5-9 5-9-5z"/><path d="M3 14l9 5 9-5"/></svg></button>
+      <button data-pt="alerts" title="Alerts"><svg class="i" viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0112 0v5l2 2H4z"/><path d="M10 20a2 2 0 004 0"/></svg><span class="badge" id="tabBadge">4</span></button>
+      <button class="collapse" title="Collapse panel"><svg class="i" viewBox="0 0 24 24" style="width:16px;height:16px"><path d="M9 6l6 6-6 6"/></svg></button>
+    </div>
+
+    <!-- Watchlist -->
+    <div class="pview active" id="pv-watch">
+      <div class="phead">
+        <h1>My Assets</h1>
+        <div class="tools">
+          <button id="viewList" title="List view"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="4" width="4" height="4" rx="1"/><rect x="3" y="14" width="4" height="4" rx="1"/><path d="M10 6h11M10 16h11"/></svg></button>
+          <button id="viewGrid" class="on" title="Grid view"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></button>
+          <button id="addAsset" class="txt solid" title="Add asset to watchlist"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Add asset</button>
+        </div>
+      </div>
+      <div class="search-box">
+        <div class="in"><input id="searchAssets" type="text" placeholder="Search Assets"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg></div>
+        <div class="selects">
+          <label><select id="filterSel"><option value="all">Filter</option><option value="alerts">With active alerts</option><option value="Residential">Residential</option><option value="Mixed-use">Mixed-use</option><option value="Commercial">Commercial</option><option value="Agricultural">Agricultural</option></select></label>
+          <label><select id="sortSel"><option value="recent">Sort</option><option value="name">Name A–Z</option><option value="alerts">Most alerts</option></select></label>
+        </div>
+      </div>
+      <div class="pscroll"><div class="cards" id="cards"></div></div>
+    </div>
+
+    <!-- Layers -->
+    <div class="pview" id="pv-layers">
+      <div class="phead"><h1>Monitored layers</h1><div class="tools"><button id="layersAllOn" class="txt" title="Turn on all layers">All on</button></div></div>
+      <div class="asset-ctx"><svg class="i" viewBox="0 0 24 24" style="width:16px;height:16px"><path d="M12 3a7 7 0 017 7c0 5-7 11-7 11S5 15 5 10a7 7 0 017-7z"/><circle cx="12" cy="10" r="2.4"/></svg>Applies to <b id="layersAssetName">—</b><select id="layersAssetSel"></select></div>
+      <div class="search-box"><div class="in"><input id="searchLayers" type="text" placeholder="Search layers"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg></div></div>
+      <div class="pscroll" style="padding-top:12px" id="layersList"></div>
+    </div>
+
+    <!-- Alerts -->
+    <div class="pview" id="pv-alerts">
+      <div class="phead"><h1>Alerts</h1><div class="tools"><button id="markRead" class="txt" title="Mark all as read">Mark all read</button></div></div>
+      <div class="afilters" id="afilters">
+        <button class="on" data-af="all">All</button><button data-af="unread">Unread</button><button data-af="planning">Planning</button><button data-af="development">Development</button><button data-af="risk">Risk</button><button data-af="market">Market</button>
+      </div>
+      <div class="pscroll" style="padding-top:6px">
+        <div id="alertsList"></div>
+        <div class="rules"><h3>Active alert rules</h3><div id="rulesList"></div></div>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<!-- Card context menu -->
+<div class="menu" id="cardMenu">
+  <button data-act="open"><svg class="i" viewBox="0 0 24 24" style="width:16px;height:16px"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 14h18"/></svg>Open dashboard</button>
+  <button data-act="layers"><svg class="i" viewBox="0 0 24 24" style="width:16px;height:16px"><path d="M12 4l9 5-9 5-9-5z"/><path d="M3 14l9 5 9-5"/></svg>Monitored layers</button>
+  <button data-act="report"><svg class="i" viewBox="0 0 24 24" style="width:16px;height:16px"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5"/></svg>Generate report</button>
+  <button data-act="project"><svg class="i" viewBox="0 0 24 24" style="width:16px;height:16px"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>Save as project</button>
+  <hr>
+  <button data-act="remove" class="danger"><svg class="i" viewBox="0 0 24 24" style="width:16px;height:16px"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>Remove from watchlist</button>
+</div>
+
+<div class="menu colmenu" id="colMenu"></div>
+
+<!-- Add asset modal -->
+<div class="overlay" id="overlay"></div>
+<div class="modal" id="addModal" role="dialog" aria-labelledby="addTitle">
+  <header><h2 id="addTitle">Add asset to watchlist</h2><button class="x" data-close><svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></header>
+  <div class="mbody">
+    <div class="field"><label for="addrInput">Property address</label><input id="addrInput" type="text" placeholder="Start typing an address, PIN or roll number" autocomplete="off"></div>
+    <div class="suggest" id="suggest"></div>
+    <div class="preview" id="addPreview" hidden><canvas id="addPreviewCanvas" width="220" height="160"></canvas><div><div class="pa" id="apAddr"></div><div class="pd" id="apDesc"></div></div></div>
+    <div class="field"><label>Asset class</label>
+      <div class="opts">
+        <label><input type="radio" name="acls" value="Residential" checked>Residential</label>
+        <label><input type="radio" name="acls" value="Mixed-use">Mixed-use</label>
+        <label><input type="radio" name="acls" value="Commercial">Commercial</label>
+        <label><input type="radio" name="acls" value="Industrial">Industrial</label>
+        <label><input type="radio" name="acls" value="Agricultural">Agricultural</label>
+      </div>
+    </div>
+    <div class="field"><label>Start monitoring</label>
+      <div class="checks">
+        <label><input type="checkbox" checked>Zoning &amp; Official Plan</label>
+        <label><input type="checkbox" checked>Development applications</label>
+        <label><input type="checkbox" checked>Building permits</label>
+        <label><input type="checkbox" checked>Flood &amp; conservation</label>
+        <label><input type="checkbox">Heritage</label>
+        <label><input type="checkbox" checked>Sales comparables</label>
+      </div>
+    </div>
+  </div>
+  <div class="mfoot"><button class="btn" data-close>Cancel</button><button class="btn primary" id="addConfirm" disabled>Add to watchlist</button></div>
+</div>
+
+<!-- Alert rule modal -->
+<div class="modal" id="ruleModal" role="dialog" aria-labelledby="ruleTitle">
+  <header><h2 id="ruleTitle">Set alert</h2><button class="x" data-close><svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></header>
+  <div class="mbody">
+    <div class="asset-ctx" style="margin:0"><span id="ruleLayerName" style="font-weight:600;color:var(--ink)"></span><span style="color:var(--text-2)">·</span><span id="ruleAssetName"></span></div>
+    <div class="field"><label>Notify me when</label><div class="opts" id="ruleTriggers"></div></div>
+    <div class="field"><label>Within</label>
+      <div class="opts">
+        <label><input type="radio" name="rr" value="On property">On property</label>
+        <label><input type="radio" name="rr" value="250 m">250 m</label>
+        <label><input type="radio" name="rr" value="500 m" checked>500 m</label>
+        <label><input type="radio" name="rr" value="1 km">1 km</label>
+        <label><input type="radio" name="rr" value="2 km">2 km</label>
+      </div>
+    </div>
+    <div class="field"><label>Deliver via</label>
+      <div class="opts">
+        <label><input type="checkbox" name="rc" value="In-app" checked>In-app</label>
+        <label><input type="checkbox" name="rc" value="Email" checked>Email</label>
+        <label><input type="checkbox" name="rc" value="SMS">SMS</label>
+        <label><input type="checkbox" name="rc" value="Teams">Microsoft Teams</label>
+      </div>
+    </div>
+    <div class="field"><label for="ruleFreq">Frequency</label><select id="ruleFreq"><option>Instantly</option><option>Daily digest (7:00 am)</option><option>Weekly digest (Monday)</option></select></div>
+  </div>
+  <div class="mfoot"><button class="btn" id="ruleRemove" style="margin-right:auto;color:var(--critical)">Remove alert</button><button class="btn" data-close>Cancel</button><button class="btn primary" id="ruleSave">Save alert</button></div>
+</div>
+
+<div class="toast" id="toast"><svg class="i" viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg><span id="toastText"></span></div>
+
+<script>
+/* =========================================================
+   Data (example data for the prototype)
+   ========================================================= */
+const TODAY = new Date('2026-09-15T09:00:00');
+
+const LAYER_GROUPS = [
+  { id: 'planning', name: 'Planning Policies', layers: [
+    { id: 'zoning',   name: 'Zoning by-law',              sub: 'Zone category, permitted uses, height & density',      triggers: ['Zoning by-law amended', 'Amendment appealed (OLT)', 'Interim control by-law passed'] },
+    { id: 'op',       name: 'Official Plan designation',  sub: 'Land use designation and policies',                    triggers: ['Designation changed', 'OPA adopted', 'OPA appealed (OLT)'] },
+    { id: 'sp',       name: 'Secondary plans',            sub: 'Area-specific plans and precinct policies',            triggers: ['New secondary plan initiated', 'Plan adopted', 'Plan amended'] },
+    { id: 'coa',      name: 'Committee of Adjustment',    sub: 'Minor variances and consents',                         triggers: ['Application submitted', 'Decision issued'] },
+  ]},
+  { id: 'development', name: 'Development Activities', layers: [
+    { id: 'apps',     name: 'Development applications',   sub: 'ZBA, OPA, site plan, plan of subdivision',             triggers: ['Application submitted', 'Status changed', 'Approved / refused', 'Appealed (OLT)'] },
+    { id: 'permits',  name: 'Building permits',           sub: 'Issued and applied-for permits',                       triggers: ['Permit applied for', 'Permit issued', 'Demolition permit'] },
+    { id: 'transit',  name: 'Transit & infrastructure',   sub: 'Transit projects, road works, EA studies',             triggers: ['Project announced', 'Construction started'] },
+  ]},
+  { id: 'heritage', name: 'Heritage', layers: [
+    { id: 'heritage', name: 'Heritage register',          sub: 'Listed & designated properties, HCDs',                 triggers: ['Property listed', 'Property designated', 'HCD study initiated'] },
+  ]},
+  { id: 'risk', name: 'Hazards & Conservation', layers: [
+    { id: 'flood',    name: 'Flood hazard',               sub: 'Conservation authority regulated areas',               triggers: ['Regulation limit updated', 'Flood mapping revised', 'Flood warning issued'] },
+    { id: 'env',      name: 'Environmental records',      sub: 'Records of site condition, contaminated sites',        triggers: ['New record filed nearby'] },
+  ]},
+  { id: 'market', name: 'Market', layers: [
+    { id: 'sales',    name: 'Sales comparables',          sub: 'Registered transfers, same asset class',               triggers: ['Sale recorded nearby', 'Listing price change', 'Avg. price moves ±5%'] },
+    { id: 'rent',     name: 'Rental rates',               sub: 'Asking rents, vacancy',                                triggers: ['Avg. rent moves ±5%'] },
+    { id: 'mpac',     name: 'MPAC assessment & tax',      sub: 'Assessed value, property tax rate',                    triggers: ['Assessment updated', 'Tax rate changed'] },
+  ]},
+];
+const ALL_LAYERS = LAYER_GROUPS.flatMap(g => g.layers.map(l => ({ ...l, group: g.id })));
+const LAYER = Object.fromEntries(ALL_LAYERS.map(l => [l.id, l]));
+
+function series(seed, base, trend, vol, n = 24) { // deterministic $/sqft series
+  const r = rng(seed); const out = []; let v = base;
+  for (let i = 0; i < n; i++) { v = v * (1 + trend + (r() - 0.5) * vol); out.push(Math.round(v)); }
+  return out;
+}
+function rng(seed) { let s = seed * 9301 + 49297; return () => { s = (s * 9301 + 49297) % 233280; return s / 233280; }; }
+
+const ASSETS = [
+  {
+    id: 'greenlaw', address: '12 Greenlaw Ave', city: 'Toronto', cls: 'Residential', sub: 'Detached, 2½-storey · 297 m² lot',
+    added: '2026-08-13', checked: 'Today, 06:00', ward: 'Ward 9 · Davenport', pin: '213050119', roll: '1904 05 1 220 01900',
+    lot: { area: '297 m²', frontage: '7.62 m', depth: '39.0 m', gfa: '176 m² (est.)', built: '1912', use: 'Single detached' },
+    zoning: { code: 'R (d0.6) (x820)', bylaw: 'Zoning By-law 569-2013', uses: 'Detached, semi-detached, townhouse, ≤ 3 units', height: '10.0 m', density: '0.6 FSI', amended: 'May 11, 2023', status: 'good', statusLabel: 'No pending changes' },
+    op: { designation: 'Neighbourhoods', plan: 'City of Toronto Official Plan', secondary: 'None', chapter: 'Ch. 4.1 · Neighbourhoods', status: 'good', statusLabel: 'Stable since 2015' },
+    heritage: { status: 'Not listed', hcd: 'None', nearest: 'Wallace Emerson survey area · 340 m', level: 'good' },
+    flood: { status: 'Outside regulated area', authority: 'Toronto & Region CA (TRCA)', level: 1, detail: 'Nearest regulated area: Earlscourt ravine, 900 m north-west.' },
+    env: { status: 'No records within 250 m', level: 'good' },
+    apps: [
+      { type: 'Zoning By-law Amendment', addr: '1245 Dupont St', dist: '420 m', status: 'Under review', sev: 'warn', date: 'Sep 2, 2026', desc: '12-storey mixed-use, 214 units, 1.2 FSI over permitted', ref: '26 187654 WET 09 OZ' },
+      { type: 'Site Plan Approval', addr: '1177 Dupont St', dist: '610 m', status: 'Approved', sev: 'good', date: 'Jul 21, 2026', desc: '8-storey residential, 96 units', ref: '25 220311 WET 09 SA' },
+      { type: 'Minor Variance', addr: '41 Greenlaw Ave', dist: '210 m', status: 'Hearing Oct 8', sev: 'info', date: 'Aug 27, 2026', desc: 'Rear-yard setback & FSI 0.72', ref: 'A0612/26TEY' },
+    ],
+    permits: [
+      { type: 'Building permit · Issued', addr: '18 Greenlaw Ave', dist: '85 m', date: 'Sep 12, 2026', desc: 'Third-storey rear addition, laneway suite', sev: 'warn' },
+      { type: 'Building permit · Applied', addr: '1229 Lansdowne Ave', dist: '330 m', date: 'Aug 30, 2026', desc: 'Interior alterations, 2 → 3 units', sev: 'info' },
+    ],
+    market: { unit: '$/sq ft', metric: 'Avg. sale · detached, 1 km', local: series(3, 812, 0.004, 0.03), city: series(4, 905, 0.002, 0.02), avgPrice: '$1.28M', yoy: '+4.2%', dom: '14 days', rent: '$3,150 / mo', rentSub: '2-bed, avg. asking · 1 km', assessed: '$988,000', tax: '$5,842 / yr',
+      comps: [ ['22 Greenlaw Ave', 'Aug 29, 2026', '$1,315,000', '$904'], ['1188 Lansdowne Ave', 'Aug 4, 2026', '$1,190,000', '$871'], ['57 Auburn Ave', 'Jul 18, 2026', '$1,402,000', '$933'], ['9 Beaver Ave', 'Jun 30, 2026', '$1,245,000', '$882'] ] },
+    layers: ['zoning', 'op', 'coa', 'apps', 'permits', 'flood', 'sales', 'mpac'],
+    rules: { apps: { trigger: 'Application submitted', radius: '500 m', channels: ['In-app', 'Email'], freq: 'Instantly' }, permits: { trigger: 'Permit issued', radius: '250 m', channels: ['In-app'], freq: 'Daily digest (7:00 am)' }, sales: { trigger: 'Sale recorded nearby', radius: '500 m', channels: ['In-app', 'Email'], freq: 'Weekly digest (Monday)' } },
+    map: { seed: 11, angle: -17, water: false, flood: null, muni: 'Toronto', streets: ['Greenlaw Ave', 'St. Clarens Ave', 'Lansdowne Ave', 'Davenport Rd', 'Peterborough Ave'],
+      pins: [ { t: 'app', x: .30, y: .22, l: '1245 Dupont St', s: 'ZBA · Under review' }, { t: 'coa', x: .70, y: .68, l: '41 Greenlaw Ave', s: 'Minor variance · Hearing Oct 8' }, { t: 'permit', x: .56, y: .43, l: '18 Greenlaw Ave', s: 'Permit issued · Sep 12', hot: true }, { t: 'permit', x: .18, y: .60, l: '1229 Lansdowne Ave', s: 'Permit applied' }, { t: 'sale', x: .60, y: .55, l: '22 Greenlaw Ave', s: 'Sold $1,315,000 · Aug 29' }, { t: 'sale', x: .82, y: .30, l: '57 Auburn Ave', s: 'Sold $1,402,000 · Jul 18' } ] },
+  },
+  {
+    id: 'booth', address: '30 Booth Ave', city: 'Toronto', cls: 'Mixed-use', sub: 'Loft conversion, 4-storey · 1,240 m² lot',
+    added: '2026-07-30', checked: 'Today, 06:00', ward: 'Ward 14 · Toronto-Danforth', pin: '210780042', roll: '1904 07 2 110 00300',
+    lot: { area: '1,240 m²', frontage: '30.5 m', depth: '40.6 m', gfa: '3,900 m²', built: '1921 (conv. 2009)', use: 'Live-work / office' },
+    zoning: { code: 'CR 2.0 (c1.0; r2.0) SS2 (x2232)', bylaw: 'Zoning By-law 569-2013', uses: 'Residential, office, retail, live-work', height: '14.0 m', density: '2.0 FSI', amended: 'Feb 2, 2024', status: 'good', statusLabel: 'No pending changes' },
+    op: { designation: 'Mixed Use Areas', plan: 'City of Toronto Official Plan', secondary: 'None · adjacent to East Harbour SP', chapter: 'Ch. 4.5 · Mixed Use Areas', status: 'warn', statusLabel: 'East Harbour SP review underway' },
+    heritage: { status: 'Not listed', hcd: 'None · Queen St E HCD study 380 m', nearest: '33 Booth Ave listed Aug 20, 2026', level: 'warn' },
+    flood: { status: 'Within regulated area', authority: 'TRCA · Lower Don Special Policy Area', level: 3, detail: 'Regulation limit revised Sep 3, 2026: parcel now within the Lower Don regulated area. CA permit required for site alteration.' },
+    env: { status: '2 records within 250 m', level: 'warn' },
+    apps: [
+      { type: 'Site Plan Approval', addr: '1 Eastern Ave · East Harbour Block 1', dist: '240 m', status: 'Submitted', sev: 'crit', date: 'Sep 14, 2026', desc: '38-storey office & residential, 1,150 units, phase 1', ref: '26 199210 STE 14 SA' },
+      { type: 'Zoning By-law Amendment', addr: '388 Eastern Ave', dist: '410 m', status: 'Under review', sev: 'warn', date: 'Aug 11, 2026', desc: '14-storey residential, 320 units', ref: '26 172233 STE 14 OZ' },
+      { type: 'Transit-Oriented Community', addr: 'East Harbour TOC', dist: '300 m', status: 'MZO in force', sev: 'info', date: 'Mar 3, 2026', desc: '4,300 units, 50,000 jobs, Ontario Line hub', ref: 'O. Reg. 42/26' },
+    ],
+    permits: [
+      { type: 'Building permit · Issued', addr: '40 Booth Ave', dist: '60 m', date: 'Sep 1, 2026', desc: 'Shoring & excavation, 6-storey', sev: 'warn' },
+      { type: 'Demolition permit', addr: '399 Eastern Ave', dist: '390 m', date: 'Aug 22, 2026', desc: 'Demolition of 1-storey industrial', sev: 'info' },
+    ],
+    market: { unit: '$/sq ft', metric: 'Avg. sale · loft & condo, 1 km', local: series(7, 960, 0.003, 0.028), city: series(8, 1010, 0.001, 0.02), avgPrice: '$1,020', yoy: '+2.9%', dom: '22 days', rent: '$38.50 / sq ft', rentSub: 'Office net asking · Leslieville', assessed: '$6.4M', tax: '$71,200 / yr',
+      comps: [ ['326 Carlaw Ave #412', 'Sep 5, 2026', '$895,000', '$1,041'], ['68 Broadview Ave #208', 'Aug 19, 2026', '$1,110,000', '$998'], ['245 Carlaw Ave #302', 'Jul 27, 2026', '$742,000', '$1,062'] ] },
+    layers: ['zoning', 'op', 'sp', 'apps', 'permits', 'transit', 'heritage', 'flood', 'env', 'sales', 'rent'],
+    rules: { apps: { trigger: 'Application submitted', radius: '500 m', channels: ['In-app', 'Email'], freq: 'Instantly' }, flood: { trigger: 'Regulation limit updated', radius: 'On property', channels: ['In-app', 'Email', 'SMS'], freq: 'Instantly' }, heritage: { trigger: 'Property listed', radius: '250 m', channels: ['In-app'], freq: 'Instantly' } },
+    map: { seed: 23, angle: 3, water: false, flood: { x: 0, y: .55, w: .62, h: .45 }, muni: 'Toronto', streets: ['Booth Ave', 'Eastern Ave', 'Logan Ave', 'Lake Shore Blvd E', 'Carlaw Ave'],
+      pins: [ { t: 'app', x: .22, y: .32, l: '1 Eastern Ave · East Harbour', s: 'Site plan · Submitted Sep 14', hot: true }, { t: 'app', x: .78, y: .28, l: '388 Eastern Ave', s: 'ZBA · Under review' }, { t: 'permit', x: .58, y: .58, l: '40 Booth Ave', s: 'Permit issued · Sep 1' }, { t: 'heritage', x: .40, y: .66, l: '33 Booth Ave', s: 'Listed · Aug 20' }, { t: 'sale', x: .84, y: .62, l: '326 Carlaw Ave #412', s: 'Sold $895,000' } ] },
+  },
+  {
+    id: 'lakeshore', address: '955 Lake Shore Blvd W', city: 'Toronto', cls: 'Commercial', sub: 'Waterfront development site · 2.1 ha',
+    added: '2026-07-30', checked: 'Today, 06:00', ward: 'Ward 10 · Spadina-Fort York', pin: '212890007', roll: '1904 06 1 001 00500',
+    lot: { area: '21,400 m²', frontage: '188 m', depth: '114 m', gfa: '—', built: '1971 (vacant)', use: 'Surface parking' },
+    zoning: { code: 'CR 3.0 (c2.0; r2.5) SS1 (x2101)', bylaw: 'Zoning By-law 569-2013', uses: 'Mixed-use, hotel, cultural, retail', height: '40.0 m', density: '3.0 FSI', amended: 'Nov 30, 2025', status: 'warn', statusLabel: 'OPA under appeal' },
+    op: { designation: 'Regeneration Areas', plan: 'City of Toronto Official Plan', secondary: 'Central Waterfront Secondary Plan', chapter: 'Ch. 4.7 · Regeneration Areas', status: 'crit', statusLabel: 'Designation change adopted Sep 8' },
+    heritage: { status: 'Adjacent to designated property', hcd: 'None', nearest: 'Ontario Place · Part IV designated · 120 m', level: 'warn' },
+    flood: { status: 'Shoreline hazard · regulated', authority: 'TRCA · Lake Ontario shoreline', level: 3, detail: 'Within 100-year wave uprush limit. Shoreline hazard study required before site plan.' },
+    env: { status: '1 record on property (RSC 2019)', level: 'warn' },
+    apps: [
+      { type: 'Official Plan Amendment', addr: 'Central Waterfront SP · Area 3', dist: 'On property', status: 'Adopted · appealed', sev: 'crit', date: 'Sep 8, 2026', desc: 'Redesignates Regeneration Areas → Mixed Use Areas; max height 60 m', ref: 'OPA 712' },
+      { type: 'Zoning By-law Amendment', addr: '900 Lake Shore Blvd W', dist: '260 m', status: 'Under review', sev: 'warn', date: 'Jun 9, 2026', desc: '2 towers, 45 & 39 storeys, 1,020 units', ref: '26 152110 STE 10 OZ' },
+      { type: 'Site Plan Approval', addr: 'Ontario Place · Therme', dist: '350 m', status: 'Approved', sev: 'good', date: 'Jan 14, 2026', desc: 'Wellness facility, 7 ha public realm', ref: '24 100211 STE 10 SA' },
+    ],
+    permits: [ { type: 'Building permit · Issued', addr: '955 Lake Shore Blvd W', dist: 'On property', date: 'Aug 5, 2026', desc: 'Site servicing & shoring (Phase 0)', sev: 'info' } ],
+    market: { unit: '$/sq ft', metric: 'Avg. sale · condo, 1 km', local: series(13, 1065, 0.002, 0.03), city: series(14, 1010, 0.001, 0.02), avgPrice: '$1,088', yoy: '−1.3%', dom: '31 days', rent: '$4.12 / sq ft / mo', rentSub: 'Residential asking · Fort York', assessed: '$48.2M', tax: '$612,000 / yr',
+      comps: [ ['15 Iceboat Terr #2801', 'Sep 3, 2026', '$1,240,000', '$1,102'], ['80 Marine Parade Dr #1502', 'Aug 14, 2026', '$988,000', '$1,067'], ['600 Fleet St #3204', 'Jul 9, 2026', '$1,415,000', '$1,120'] ] },
+    layers: ['zoning', 'op', 'sp', 'apps', 'permits', 'transit', 'heritage', 'flood', 'env', 'sales', 'mpac'],
+    rules: { op: { trigger: 'Designation changed', radius: 'On property', channels: ['In-app', 'Email', 'SMS'], freq: 'Instantly' }, zoning: { trigger: 'Amendment appealed (OLT)', radius: '500 m', channels: ['In-app', 'Email'], freq: 'Instantly' }, apps: { trigger: 'Status changed', radius: '1 km', channels: ['In-app', 'Email'], freq: 'Daily digest (7:00 am)' } },
+    map: { seed: 37, angle: -8, water: true, flood: { x: 0, y: .62, w: 1, h: .38 }, muni: 'Toronto', streets: ['Lake Shore Blvd W', 'Remembrance Dr', 'Ontario Dr', 'Martin Goodman Trail', 'Fleet St'],
+      pins: [ { t: 'app', x: .50, y: .42, l: 'OPA 712 · Central Waterfront', s: 'Adopted · appealed to OLT', hot: true }, { t: 'app', x: .24, y: .30, l: '900 Lake Shore Blvd W', s: 'ZBA · Under review' }, { t: 'heritage', x: .74, y: .60, l: 'Ontario Place', s: 'Part IV designated' }, { t: 'sale', x: .80, y: .24, l: '15 Iceboat Terr #2801', s: 'Sold $1,240,000' } ] },
+  },
+  {
+    id: 'yonge', address: '2200 Yonge St', city: 'Toronto', cls: 'Commercial', sub: 'Office, 12-storey · Class B · 9,300 m² GFA',
+    added: '2026-06-18', checked: 'Today, 06:00', ward: 'Ward 12 · Toronto-St. Paul\'s', pin: '211390221', roll: '1904 10 3 020 01100',
+    lot: { area: '1,860 m²', frontage: '42 m', depth: '44 m', gfa: '9,300 m²', built: '1978', use: 'Office / ground-floor retail' },
+    zoning: { code: 'CR 3.0 (c3.0; r3.0) SS1 (x1930)', bylaw: 'Zoning By-law 569-2013', uses: 'Office, retail, residential, hotel', height: '38.0 m', density: '3.0 FSI', amended: 'Sep 10, 2026', status: 'crit', statusLabel: 'Adjacent ZBA appealed to OLT' },
+    op: { designation: 'Mixed Use Areas', plan: 'City of Toronto Official Plan', secondary: 'Yonge-Eglinton Secondary Plan (OPA 405)', chapter: 'Midtown Core · Site & Area Specific Policy 546', status: 'good', statusLabel: 'In force since 2022' },
+    heritage: { status: 'Not listed', hcd: 'None', nearest: 'Capitol Theatre · listed · 260 m', level: 'good' },
+    flood: { status: 'Outside regulated area', authority: 'TRCA', level: 1, detail: 'No hazard mapping within 1 km.' },
+    env: { status: 'No records within 250 m', level: 'good' },
+    apps: [
+      { type: 'Zoning By-law Amendment', addr: '2180 Yonge St · Canada Square', dist: '90 m', status: 'Appealed (OLT)', sev: 'crit', date: 'Sep 10, 2026', desc: 'Master plan: 8 towers to 60 storeys, 2,700 units, 63,000 m² office', ref: '21 178822 STE 12 OZ · OLT-26-001914' },
+      { type: 'Site Plan Approval', addr: '2263 Yonge St', dist: '160 m', status: 'Under review', sev: 'warn', date: 'Aug 6, 2026', desc: '58-storey residential, 640 units', ref: '26 165210 STE 12 SA' },
+      { type: 'Committee of Adjustment', addr: '30 Eglinton Ave W', dist: '210 m', status: 'Approved', sev: 'good', date: 'Jul 16, 2026', desc: 'Loading space variance', ref: 'A0455/26TEY' },
+    ],
+    permits: [ { type: 'Building permit · Issued', addr: '2263 Yonge St', dist: '160 m', date: 'Sep 9, 2026', desc: 'Shoring & excavation', sev: 'warn' }, { type: 'Building permit · Issued', addr: '2200 Yonge St', dist: 'On property', date: 'Jul 2, 2026', desc: 'Lobby renovation, 4th floor fit-out', sev: 'info' } ],
+    market: { unit: '$/sq ft', metric: 'Avg. sale · office strata, 2 km', local: series(19, 560, 0.001, 0.035), city: series(20, 610, -0.001, 0.02), avgPrice: '$548', yoy: '−3.8%', dom: '64 days', rent: '$31.25 / sq ft', rentSub: 'Class B net asking · Midtown · 11.4% vacancy', assessed: '$41.9M', tax: '$1.02M / yr',
+      comps: [ ['2 St. Clair Ave E · 4th fl', 'Aug 28, 2026', '$3,120,000', '$531'], ['20 Eglinton Ave W · 9th fl', 'Jul 30, 2026', '$2,640,000', '$566'], ['2345 Yonge St · unit 300', 'Jun 12, 2026', '$1,980,000', '$542'] ] },
+    layers: ['zoning', 'op', 'sp', 'coa', 'apps', 'permits', 'transit', 'rent', 'mpac'],
+    rules: { zoning: { trigger: 'Amendment appealed (OLT)', radius: '250 m', channels: ['In-app', 'Email'], freq: 'Instantly' }, rent: { trigger: 'Avg. rent moves ±5%', radius: '2 km', channels: ['In-app'], freq: 'Weekly digest (Monday)' } },
+    map: { seed: 41, angle: -2, water: false, flood: null, muni: 'Toronto', streets: ['Yonge St', 'Eglinton Ave W', 'Eglinton Ave E', 'Duplex Ave', 'Berwick Ave'],
+      pins: [ { t: 'app', x: .44, y: .62, l: '2180 Yonge St · Canada Square', s: 'ZBA · Appealed to OLT Sep 10', hot: true }, { t: 'app', x: .58, y: .26, l: '2263 Yonge St', s: 'Site plan · Under review' }, { t: 'permit', x: .60, y: .30, l: '2263 Yonge St', s: 'Permit issued · Sep 9' }, { t: 'coa', x: .26, y: .38, l: '30 Eglinton Ave W', s: 'Variance approved' }, { t: 'heritage', x: .78, y: .70, l: 'Capitol Theatre', s: 'Listed' } ] },
+  },
+  {
+    id: 'middleline', address: '7769 Middle Line', city: 'Chatham-Kent', cls: 'Agricultural', sub: 'Cash crop · 38.4 ha (95 ac)',
+    added: '2026-08-31', checked: 'Today, 06:00', ward: 'Ward 2 · South Kent', pin: '007450112', roll: '3650 300 001 12300',
+    lot: { area: '38.4 ha', frontage: '402 m', depth: '955 m', gfa: '340 m² (barn)', built: '1954 (barn)', use: 'Cash crop · soy / corn rotation' },
+    zoning: { code: 'A1 · Agricultural', bylaw: 'Chatham-Kent Zoning By-law 216-2009', uses: 'Agriculture, one dwelling, on-farm diversified uses', height: '12.0 m (accessory)', density: '—', amended: 'Apr 3, 2025', status: 'good', statusLabel: 'No pending changes' },
+    op: { designation: 'Agricultural Area', plan: 'Chatham-Kent Official Plan (2017)', secondary: 'None', chapter: 'Sec. 6.3 · Agricultural', status: 'good', statusLabel: 'Prime agricultural (CLI class 1–2)' },
+    heritage: { status: 'Not listed', hcd: 'None', nearest: 'Buxton National Historic Site · 4.1 km', level: 'good' },
+    flood: { status: 'Partially regulated', authority: 'Lower Thames Valley CA', level: 2, detail: 'North 6 ha within LTVCA regulated area (municipal drain). Drain maintenance scheduled 2027.' },
+    env: { status: 'No records within 1 km', level: 'good' },
+    apps: [
+      { type: 'Renewable Energy Approval', addr: 'Lot 14, Con 8 · 2.2 km', dist: '2.2 km', status: 'Public comment', sev: 'warn', date: 'Aug 25, 2026', desc: '48 MW ground-mount solar, 110 ha', ref: 'REA 8042-D3KQ7' },
+      { type: 'Consent (severance)', addr: '7601 Middle Line', dist: '1.1 km', status: 'Approved', sev: 'good', date: 'Jul 8, 2026', desc: 'Surplus farm dwelling severance', ref: 'B-041/26' },
+    ],
+    permits: [ { type: 'Building permit · Issued', addr: '7820 Middle Line', dist: '640 m', date: 'Aug 12, 2026', desc: 'Grain storage, 2 bins', sev: 'info' } ],
+    market: { unit: '$/acre', metric: 'Avg. sale · farmland, 10 km', local: series(29, 17200, 0.004, 0.025), city: series(30, 15900, 0.003, 0.02), avgPrice: '$18,400', yoy: '+6.1%', dom: '48 days', rent: '$310 / acre', rentSub: 'Cash rent · Chatham-Kent avg.', assessed: '$1.62M', tax: '$3,410 / yr',
+      comps: [ ['Lot 9, Con 7 · 100 ac', 'Aug 15, 2026', '$1,890,000', '$18,900'], ['6210 Bloomfield Rd · 75 ac', 'Jun 26, 2026', '$1,350,000', '$18,000'], ['Lot 21, Con 9 · 150 ac', 'May 3, 2026', '$2,640,000', '$17,600'] ] },
+    layers: ['zoning', 'op', 'apps', 'permits', 'flood', 'sales', 'rent', 'mpac'],
+    rules: { sales: { trigger: 'Sale recorded nearby', radius: '2 km', channels: ['Email'], freq: 'Weekly digest (Monday)' } },
+    map: { seed: 53, angle: 0, water: false, rural: true, flood: { x: 0, y: 0, w: 1, h: .28 }, muni: 'Chatham-Kent', streets: ['Middle Line', 'Bloomfield Rd', 'Con 8', 'Drake Rd'],
+      pins: [ { t: 'app', x: .18, y: .30, l: 'REA · Solar 48 MW', s: 'Public comment to Oct 5' }, { t: 'permit', x: .76, y: .70, l: '7820 Middle Line', s: 'Permit issued · Aug 12' }, { t: 'sale', x: .70, y: .26, l: 'Lot 9, Con 7', s: 'Sold $1,890,000' } ] },
+  },
+];
+
+const ALERTS = [
+  { id: 1, asset: 'booth', layer: 'apps', cat: 'development', sev: 'crit', when: 'Sep 14 · 08:12', ago: 'Yesterday', title: 'New site plan application 240 m away', desc: '1 Eastern Ave · East Harbour Block 1 — 38-storey office & residential, 1,150 units. Submitted Sep 14.', unread: true, tab: 'development' },
+  { id: 2, asset: 'greenlaw', layer: 'permits', cat: 'development', sev: 'warn', when: 'Sep 12 · 14:40', ago: '3 days ago', title: 'Building permit issued 85 m away', desc: '18 Greenlaw Ave — third-storey rear addition and laneway suite. Permit 26 231114 BLD.', unread: true, tab: 'development' },
+  { id: 3, asset: 'yonge', layer: 'zoning', cat: 'planning', sev: 'crit', when: 'Sep 10 · 11:05', ago: '5 days ago', title: 'Zoning by-law amendment appealed to OLT', desc: '2180 Yonge St · Canada Square master plan appealed (OLT-26-001914). Shadow & density studies affect 2200 Yonge St.', unread: true, tab: 'planning' },
+  { id: 4, asset: 'lakeshore', layer: 'op', cat: 'planning', sev: 'crit', when: 'Sep 8 · 17:30', ago: '7 days ago', title: 'Official Plan designation changed', desc: 'OPA 712 adopted by Council: Regeneration Areas → Mixed Use Areas, max height 60 m. Appeal period ends Sep 28.', unread: true, tab: 'planning' },
+  { id: 5, asset: 'booth', layer: 'flood', cat: 'risk', sev: 'warn', when: 'Sep 3 · 06:00', ago: 'Sep 3', title: 'Flood regulation limit updated', desc: 'TRCA revised Lower Don mapping. 30 Booth Ave is now within the regulated area; CA permit required for site alteration.', unread: false, tab: 'risk' },
+  { id: 6, asset: 'greenlaw', layer: 'sales', cat: 'market', sev: 'good', when: 'Aug 29 · 09:15', ago: 'Aug 29', title: 'Sale recorded 120 m away', desc: '22 Greenlaw Ave sold for $1,315,000 ($904/sq ft), 4.2% above the 12-month detached average.', unread: false, tab: 'market' },
+  { id: 7, asset: 'booth', layer: 'heritage', cat: 'planning', sev: 'info', when: 'Aug 20 · 10:00', ago: 'Aug 20', title: 'Property listed on heritage register', desc: '33 Booth Ave added to the City of Toronto Heritage Register (Council decision PH15.4).', unread: false, tab: 'planning' },
+  { id: 8, asset: 'middleline', layer: 'apps', cat: 'development', sev: 'warn', when: 'Aug 25 · 12:00', ago: 'Aug 25', title: 'Renewable energy approval open for comment', desc: '48 MW ground-mount solar on Lot 14, Con 8 (2.2 km). Comment period closes Oct 5.', unread: false, tab: 'development' },
+];
+
+const SUGGESTIONS = [
+  { a: '45 Wellesley St E', c: 'Toronto, ON · PIN 211160089', cls: 'Residential', sub: 'Semi-detached, 3-storey · 186 m² lot', seed: 61, angle: 12 },
+  { a: '1 King St W', c: 'Toronto, ON · PIN 214020001', cls: 'Commercial', sub: 'Office & hotel, 51-storey · 2,600 m² lot', seed: 67, angle: -16 },
+  { a: '2000 Meadowvale Blvd', c: 'Mississauga, ON · PIN 132560041', cls: 'Industrial', sub: 'Warehouse, 14,000 m² · 3.2 ha', seed: 71, angle: 30 },
+  { a: '88 Queen St E', c: 'Toronto, ON · PIN 210940012', cls: 'Mixed-use', sub: 'Retail & residential, 6-storey', seed: 73, angle: -17 },
+  { a: '3311 Highway 3', c: 'Chatham-Kent, ON · Roll 3650 420 002 00100', cls: 'Agricultural', sub: 'Cash crop · 64 ha', seed: 79, angle: 0, rural: true },
+];
+
+/* =========================================================
+   State
+   ========================================================= */
+const state = { mode: 'dash', zoom: 1, dash: { search: '', cls: 'all', muni: 'all', tile: 'all', sort: 'flags', dir: -1, hidden: new Set(['assessed', 'checked']) }, selected: null, sheet: 'closed', tab: 'overview', view: 'grid', filter: 'all', sort: 'recent', search: '', ptab: 'watch', afilter: 'all', layerSearch: '', rule: null, addPick: null };
+const $ = (s, el = document) => el.querySelector(s);
+const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+const asset = id => ASSETS.find(a => a.id === id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const fmtDate = iso => { const d = new Date(iso + 'T00:00'); return `${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}/${String(d.getFullYear()).slice(2)}`; };
+const assetAlerts = a => ALERTS.filter(x => x.asset === a.id && x.unread);
+const ICONS = {
+  app: '<svg class="i" viewBox="0 0 24 24"><path d="M4 21h16M6 21V8l6-4 6 4v13M10 21v-5h4v5"/></svg>',
+  permit: '<svg class="i" viewBox="0 0 24 24"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5M10 14l2 2 3-4"/></svg>',
+  coa: '<svg class="i" viewBox="0 0 24 24"><path d="M4 20h16M6 20V10h12v10M9 6h6M12 3v3"/></svg>',
+  sale: '<svg class="i" viewBox="0 0 24 24"><path d="M12 3v18M16 7.5c0-1.5-1.8-2.5-4-2.5s-4 1-4 2.5 1.8 2.3 4 2.5 4 1 4 2.5-1.8 2.5-4 2.5-4-1-4-2.5"/></svg>',
+  heritage: '<svg class="i" viewBox="0 0 24 24"><path d="M3 10l9-6 9 6M5 10v10M19 10v10M9 20v-6h6v6M3 20h18"/></svg>',
+  flood: '<svg class="i" viewBox="0 0 24 24"><path d="M3 12c2-2 4-2 6 0s4 2 6 0 4-2 6 0M3 17c2-2 4-2 6 0s4 2 6 0 4-2 6 0M12 3l4 5H8z"/></svg>',
+  zoning: '<svg class="i" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 12h18M12 3v18"/></svg>',
+  op: '<svg class="i" viewBox="0 0 24 24"><path d="M4 5l5-2 6 2 5-2v14l-5 2-6-2-5 2z"/></svg>',
+  bell: '<svg class="i" viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0112 0v5l2 2H4z"/><path d="M10 20a2 2 0 004 0"/></svg>',
+  check: '<svg class="i" viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg>',
+  warn: '<svg class="i" viewBox="0 0 24 24"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18h.01"/></svg>',
+  info: '<svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>',
+  pin: '<svg class="i" viewBox="0 0 24 24"><path d="M12 3a7 7 0 017 7c0 5-7 11-7 11S5 15 5 10a7 7 0 017-7z"/><circle cx="12" cy="10" r="2.4"/></svg>',
+  chev: '<svg class="i chev" viewBox="0 0 24 24" style="width:16px;height:16px"><path d="M6 9l6 6 6-6"/></svg>',
+  clock: '<svg class="i" viewBox="0 0 24 24" style="width:14px;height:14px"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+};
+const PIN_COLOR = { app: 'var(--warning)', permit: 'var(--info)', coa: 'var(--info)', sale: 'var(--good)', heritage: '#8B5A2B', flood: 'var(--info)' };
+const PIN_LAYER = { app: 'apps', permit: 'permits', coa: 'coa', sale: 'sales', heritage: 'heritage' };
+
+/* =========================================================
+   Map drawing (procedural, deterministic per asset)
+   ========================================================= */
+const cssVar = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function drawMap(canvas, m, opts = {}) {
+  const dpr = window.devicePixelRatio || 1;
+  const W = canvas.clientWidth || canvas.width, H = canvas.clientHeight || canvas.height;
+  canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
+  const ctx = canvas.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const r = rng(m.seed);
+  const ground = cssVar('--ground'), building = cssVar('--building'), road = cssVar('--road'), park = cssVar('--park'), water = cssVar('--water'), label = cssVar('--map-label'), muni = cssVar('--muni-label');
+  const k = opts.thumb ? 0.55 : (opts.zoom || 1); // scale for thumbnails / zoom
+  ctx.fillStyle = ground; ctx.fillRect(0, 0, W, H);
+  ctx.translate(0, ((opts.cy == null ? .5 : opts.cy) - .5) * H); // keep the subject parcel visible above an open sheet
+
+  // park / open space (before roads so paths sit on top)
+  if (!m.rural) { ctx.fillStyle = park; ctx.beginPath(); ctx.ellipse(W * 0.16, H * 0.72, 150 * k, 110 * k, 0.4, 0, Math.PI * 2); ctx.fill(); }
+
+  ctx.save(); ctx.translate(W / 2, H / 2); ctx.rotate(m.angle * Math.PI / 180);
+  const ext = Math.max(W, H) * 1.2;
+  if (m.rural) {
+    // concession grid with fields
+    const cell = 300 * k;
+    for (let x = -ext; x < ext; x += cell) for (let y = -ext; y < ext; y += cell) {
+      const shade = 0.5 + r() * 0.5; ctx.fillStyle = `rgba(200,214,196,${0.18 + shade * 0.22})`; ctx.fillRect(x + 4, y + 4, cell - 8, cell - 8);
+      // crop rows
+      ctx.strokeStyle = 'rgba(160,178,160,.18)'; ctx.lineWidth = 1; const vert = r() > .5;
+      for (let i = 12; i < cell - 8; i += 9) { ctx.beginPath(); if (vert) { ctx.moveTo(x + i, y + 6); ctx.lineTo(x + i, y + cell - 6); } else { ctx.moveTo(x + 6, y + i); ctx.lineTo(x + cell - 6, y + i); } ctx.stroke(); }
+      if (r() > .7) { ctx.fillStyle = building; ctx.fillRect(x + 20 + r() * 60, y + 20 + r() * 40, 26 * k, 18 * k); ctx.fillRect(x + 30 + r() * 60, y + 60, 14 * k, 30 * k); }
+    }
+    ctx.strokeStyle = road; ctx.lineWidth = 12 * k;
+    for (let x = -ext; x < ext; x += cell) { ctx.beginPath(); ctx.moveTo(x, -ext); ctx.lineTo(x, ext); ctx.stroke(); }
+    for (let y = -ext; y < ext; y += cell * 2) { ctx.beginPath(); ctx.moveTo(-ext, y); ctx.lineTo(ext, y); ctx.stroke(); }
+  } else {
+    const minor = 62 * k, major = 310 * k, lotW = 8.5 * k;
+    // blocks with building footprints (row houses along N-S streets)
+    for (let bx = -ext; bx < ext; bx += major) {
+      for (let by = -ext; by < ext; by += minor) {
+        if (r() < 0.04) continue;
+        const depthL = 22 * k + r() * 10 * k, depthR = 22 * k + r() * 10 * k;
+        for (let lx = bx + 18 * k; lx < bx + major - 20 * k; lx += lotW + 2.2 * k) {
+          if (r() < .06) continue;
+          ctx.fillStyle = building;
+          ctx.fillRect(lx, by + 10 * k, lotW, depthL * (0.8 + r() * .4));
+          ctx.fillRect(lx, by + minor - 10 * k - depthR, lotW, depthR * (0.8 + r() * .4));
+        }
+      }
+    }
+    // larger buildings along major roads
+    ctx.fillStyle = building;
+    for (let i = 0; i < 26; i++) { const x = (r() - .5) * ext * 2, y = (r() - .5) * ext * 2; ctx.fillRect(x, y, (30 + r() * 60) * k, (20 + r() * 40) * k); }
+    // roads
+    ctx.strokeStyle = road; ctx.lineCap = 'butt';
+    ctx.lineWidth = 13 * k; for (let y = -ext; y < ext; y += minor) { ctx.beginPath(); ctx.moveTo(-ext, y); ctx.lineTo(ext, y); ctx.stroke(); }
+    ctx.lineWidth = 15 * k; for (let x = -ext; x < ext; x += major) { ctx.beginPath(); ctx.moveTo(x, -ext); ctx.lineTo(x, ext); ctx.stroke(); }
+    ctx.lineWidth = 26 * k; for (let y = -ext + major * 0.7; y < ext; y += major * 2.2) { ctx.beginPath(); ctx.moveTo(-ext, y); ctx.lineTo(ext, y); ctx.stroke(); }
+    // park paths
+    ctx.restore(); ctx.save();
+    if (!opts.thumb) { ctx.strokeStyle = road; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(W * .05, H * .66); ctx.quadraticCurveTo(W * .16, H * .70, W * .26, H * .62); ctx.moveTo(W * .10, H * .84); ctx.quadraticCurveTo(W * .16, H * .74, W * .24, H * .80); ctx.stroke(); }
+    ctx.translate(W / 2, H / 2); ctx.rotate(m.angle * Math.PI / 180);
+  }
+  // street labels
+  if (!opts.thumb) {
+    ctx.fillStyle = label; ctx.font = `500 ${12}px ${cssVar('--font') || 'sans-serif'}`; ctx.textAlign = 'center';
+    const names = m.streets || [];
+    const minor = (m.rural ? 300 : 62) * k, major = (m.rural ? 300 : 310) * k;
+    names.forEach((n, i) => {
+      ctx.save();
+      if (i % 2 === 0) { ctx.translate(-W * .25 + i * 60, (i - 1) * minor * (m.rural ? 1 : 2.5) - 4); ctx.fillText(n, 0, 0); }
+      else { ctx.translate((i - 2) * major + 4, W * .05 + i * 30); ctx.rotate(-Math.PI / 2); ctx.fillText(n, 0, 0); }
+      ctx.restore();
+    });
+  }
+  ctx.restore();
+
+  // water
+  if (m.water) { ctx.fillStyle = water; ctx.beginPath(); ctx.moveTo(0, H * .78); ctx.quadraticCurveTo(W * .3, H * .70, W * .55, H * .74); ctx.quadraticCurveTo(W * .8, H * .78, W, H * .66); ctx.lineTo(W, H); ctx.lineTo(0, H); ctx.closePath(); ctx.fill(); }
+
+  // flood overlay
+  if (m.flood && opts.showFlood) {
+    const z = opts.zoom || 1; const f = { x: .5 + (m.flood.x - .5) * z, y: .5 + (m.flood.y - .5) * z, w: m.flood.w * z, h: m.flood.h * z }; ctx.save(); ctx.beginPath();
+    ctx.moveTo(f.x * W, f.y * H); ctx.quadraticCurveTo((f.x + f.w * .5) * W, (f.y - .08) * H, (f.x + f.w) * W, f.y * H); ctx.lineTo((f.x + f.w) * W, (f.y + f.h) * H); ctx.lineTo(f.x * W, (f.y + f.h) * H); ctx.closePath();
+    ctx.fillStyle = 'rgba(74,114,184,.14)'; ctx.fill(); ctx.clip();
+    ctx.strokeStyle = 'rgba(74,114,184,.35)'; ctx.lineWidth = 1.2;
+    for (let i = -H; i < W + H; i += 14) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i + H, H); ctx.stroke(); }
+    ctx.restore(); ctx.strokeStyle = 'rgba(74,114,184,.7)'; ctx.lineWidth = 1.5; ctx.setLineDash([6, 4]); ctx.stroke(); ctx.setLineDash([]);
+  }
+
+  // municipality labels
+  if (!opts.thumb) { ctx.fillStyle = muni; ctx.font = `500 15px ${cssVar('--font') || 'sans-serif'}`; ctx.textAlign = 'center'; ctx.fillText(m.muni, W * .27, H * .52); ctx.fillText(m.muni, W * .80, H * .52); }
+
+  // subject parcel
+  ctx.save(); ctx.translate(W / 2, H / 2); ctx.rotate(m.angle * Math.PI / 180);
+  const pw = (m.rural ? 150 : (opts.parcelW || 120)) * k, ph = (m.rural ? 110 : 30) * k;
+  ctx.fillStyle = 'rgba(53,201,138,.42)'; ctx.strokeStyle = cssVar('--accent-deep'); ctx.lineWidth = 2 * k;
+  ctx.beginPath(); ctx.rect(-pw / 2, -ph / 2, pw, ph); ctx.fill(); ctx.stroke();
+  ctx.restore();
+}
+
+const mapCy = () => state.sheet === 'closed' || !state.selected ? .5 : .23;
+function renderMainMap() {
+  const a = asset(state.selected); const canvas = $('#map');
+  const m = a ? a.map : { seed: 5, angle: -17, muni: 'Toronto', streets: ['Greenlaw Ave', 'St. Clarens Ave', 'Lansdowne Ave', 'Davenport Rd', 'Peterborough Ave'] };
+  drawMap(canvas, m, { showFlood: a ? a.layers.includes('flood') : false, zoom: state.zoom, cy: mapCy() });
+  const baseScale = a && a.map.rural ? 500 : 30; $('#scaleBar').textContent = Math.max(5, Math.round(baseScale / state.zoom / 5) * 5) + ' m';
+  const pins = $('#pins'); pins.innerHTML = '';
+  if (!a) return;
+  a.map.pins.filter(p => a.layers.includes(PIN_LAYER[p.t])).forEach(p => {
+    const el = document.createElement('button');
+    el.className = 'pin' + (p.t === 'permit' || p.t === 'coa' ? ' sq' : '') + (p.hot ? ' pulse' : '');
+    const px = .5 + (p.x - .5) * state.zoom, py = .5 + (p.y - .5) * state.zoom + (mapCy() - .5); if (px < .02 || px > .98 || py < .06 || py > .98) return;
+    el.style.left = (px * 100) + '%'; el.style.top = (py * 100) + '%'; el.style.setProperty('--pin', PIN_COLOR[p.t]);
+    el.innerHTML = `<div class="tip"><b>${esc(p.l)}</b>${esc(p.s)}</div><div class="dot">${ICONS[p.t]}</div><div class="stem"></div>`;
+    el.addEventListener('click', () => { openSheet(a.id, p.t === 'sale' ? 'market' : p.t === 'heritage' ? 'planning' : 'development'); });
+    pins.appendChild(el);
+  });
+}
+
+/* =========================================================
+   Watchlist
+   ========================================================= */
+function filteredAssets() {
+  let list = ASSETS.slice();
+  if (state.search) list = list.filter(a => (a.address + ' ' + a.city + ' ' + a.cls).toLowerCase().includes(state.search.toLowerCase()));
+  if (state.filter === 'alerts') list = list.filter(a => assetAlerts(a).length);
+  else if (state.filter !== 'all') list = list.filter(a => a.cls === state.filter);
+  if (state.sort === 'name') list.sort((x, y) => x.address.localeCompare(y.address));
+  else if (state.sort === 'alerts') list.sort((x, y) => assetAlerts(y).length - assetAlerts(x).length);
+  else list.sort((x, y) => y.added.localeCompare(x.added));
+  return list;
+}
+function renderCards() {
+  renderDash();
+  const wrap = $('#cards'); wrap.className = 'cards' + (state.view === 'list' ? ' list' : ''); wrap.innerHTML = '';
+  const list = filteredAssets();
+  if (!list.length) { wrap.innerHTML = '<div class="empty">No assets match. Try another search or add an asset.</div>'; return; }
+  list.forEach(a => {
+    const n = assetAlerts(a).length;
+    const card = document.createElement('article'); card.className = 'card' + (a.id === state.selected ? ' selected' : ''); card.dataset.id = a.id;
+    const icons = a.layers.slice(0, 6).map(id => `<i title="${esc(LAYER[id].name)}">${ICONS[{ zoning: 'zoning', op: 'op', sp: 'op', coa: 'coa', apps: 'app', permits: 'permit', transit: 'app', heritage: 'heritage', flood: 'flood', env: 'flood', sales: 'sale', rent: 'sale', mpac: 'sale' }[id]]}</i>`).join('') + (a.layers.length > 6 ? `<i style="font-size:11px;font-weight:600">+${a.layers.length - 6}</i>` : '');
+    card.innerHTML = `
+      <div class="thumb"><canvas></canvas>${n ? `<span class="chip crit alert-pill">${ICONS.bell}${n}</span>` : ''}<span class="cls">${esc(a.cls)}</span></div>
+      <div class="date">${ICONS.pin}${fmtDate(a.added)} <span style="color:var(--text-3)">· checked ${esc(a.checked).toLowerCase()}</span></div>
+      <div class="name">${esc(a.address)}, ${esc(a.city)}</div>
+      <div class="sub">${esc(a.sub)}</div>
+      <div class="layers-line">${icons}</div>
+      <div class="foot"><button class="link" data-open>Monitor asset${n ? ` · ${n} new` : ''}</button><button class="more" data-more aria-label="More options">···</button></div>`;
+    wrap.appendChild(card);
+    drawMap($('canvas', card), a.map, { thumb: true, showFlood: a.layers.includes('flood'), parcelW: 90 });
+    card.addEventListener('click', e => { if (e.target.closest('[data-more]')) return; openSheet(a.id); });
+    $('[data-more]', card).addEventListener('click', e => { e.stopPropagation(); openMenu(e.currentTarget, a.id); });
+  });
+}
+function openMenu(btn, id) {
+  const menu = $('#cardMenu'); const r = btn.getBoundingClientRect();
+  menu.dataset.id = id; menu.classList.add('open');
+  const left = Math.min(r.left, window.innerWidth - 220); menu.style.left = left + 'px'; menu.style.top = (r.bottom + 4 + window.scrollY) + 'px';
+  if (r.bottom + 220 > window.innerHeight) menu.style.top = (r.top - 214) + 'px';
+}
+document.addEventListener('click', e => {
+  if (!e.target.closest('#cardMenu') && !e.target.closest('[data-more]')) $('#cardMenu').classList.remove('open');
+  if (!e.target.closest('#colMenu') && !e.target.closest('#dashCols')) $('#colMenu').classList.remove('open');
+});
+$$('#cardMenu button').forEach(b => b.addEventListener('click', () => {
+  const id = $('#cardMenu').dataset.id; const a = asset(id); $('#cardMenu').classList.remove('open');
+  switch (b.dataset.act) {
+    case 'open': openSheet(id); break;
+    case 'layers': setMode('map'); selectAsset(id); showPanel('layers'); break;
+    case 'report': toast(`Generating monitoring report for ${a.address}…`); setTimeout(() => toast(`Report ready · ${a.address}`), 1800); break;
+    case 'project': toast(`${a.address} saved to My Projects`); break;
+    case 'remove': removeAsset(id); break;
+  }
+}));
+function removeAsset(id) {
+  const i = ASSETS.findIndex(a => a.id === id); if (i < 0) return; const a = ASSETS[i];
+  ASSETS.splice(i, 1); for (let j = ALERTS.length - 1; j >= 0; j--) if (ALERTS[j].asset === id) ALERTS.splice(j, 1);
+  if (state.selected === id) { state.selected = null; closeSheet(); }
+  renderAll(); toast(`${a.address} removed from watchlist`);
+}
+
+/* =========================================================
+   Selection & bottom sheet
+   ========================================================= */
+function selectAsset(id) {
+  state.selected = id; const a = asset(id);
+  $('#chipAssetName').textContent = a ? `${a.address}, ${a.city}` : 'Select an asset';
+  $('#layersAssetName').textContent = a ? a.address : '—';
+  $('#layersAssetSel').value = id || '';
+  renderMainMap(); renderCards(); renderLayers();
+}
+function openSheet(id, tab) {
+  if (state.mode !== 'map') setMode('map');
+  if (id !== state.selected) selectAsset(id);
+  if (tab) state.tab = tab; else if (state.sheet === 'closed') state.tab = 'overview';
+  if (state.sheet === 'closed') state.sheet = 'half';
+  renderSheet(); applySheet();
+}
+function closeSheet() { state.sheet = 'closed'; applySheet(); }
+function applySheet() {
+  const s = $('#sheet'); s.classList.remove('half', 'full'); if (state.sheet !== 'closed') s.classList.add(state.sheet);
+  $('#shExpand').innerHTML = state.sheet === 'full' ? '<svg class="i" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>' : '<svg class="i" viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></svg>';
+  $('#shExpand').title = state.sheet === 'full' ? 'Collapse' : 'Expand';
+  $('#chipSheet').classList.toggle('on', state.sheet !== 'closed');
+  renderMainMap();
+}
+$('#shExpand').addEventListener('click', () => { state.sheet = state.sheet === 'full' ? 'half' : 'full'; applySheet(); });
+$('#sheetHandle').addEventListener('click', () => { state.sheet = state.sheet === 'full' ? 'half' : 'full'; applySheet(); });
+$('#shClose').addEventListener('click', closeSheet);
+$('#chipSheet').addEventListener('click', () => { if (!state.selected) { toast('Select an asset from your watchlist first'); return; } state.sheet === 'closed' ? openSheet(state.selected) : closeSheet(); });
+$('#chipLayers').addEventListener('click', () => showPanel('layers'));
+$('#chipAlerts').addEventListener('click', () => showPanel('alerts'));
+$('#chipReport').addEventListener('click', () => { const a = asset(state.selected); if (!a) return toast('Select an asset first'); toast(`Generating monitoring report for ${a.address}…`); setTimeout(() => toast(`Report ready · ${a.address}`), 1800); });
+$('#shReport').addEventListener('click', () => $('#chipReport').click());
+$('#shLayers').addEventListener('click', () => showPanel('layers'));
+// drag the handle
+(() => { let startY = null; const h = $('#sheetHandle');
+  h.addEventListener('pointerdown', e => { startY = e.clientY; h.setPointerCapture(e.pointerId); });
+  h.addEventListener('pointerup', e => { if (startY == null) return; const dy = e.clientY - startY; startY = null;
+    if (dy < -40) { state.sheet = 'full'; applySheet(); } else if (dy > 40) { state.sheet = state.sheet === 'full' ? 'half' : 'closed'; applySheet(); } });
+})();
+
+const TABS = [['overview', 'Overview'], ['planning', 'Planning'], ['development', 'Development'], ['risk', 'Risk'], ['market', 'Market'], ['activity', 'Activity']];
+function renderSheet() {
+  const a = asset(state.selected); if (!a) return;
+  const n = assetAlerts(a).length;
+  $('#shTitle').textContent = `${a.address}, ${a.city}`;
+  $('#shMeta').innerHTML = `<span class="chip neutral">${esc(a.cls)}</span><span>${esc(a.sub)}</span><span>${esc(a.ward)}</span><span>PIN ${esc(a.pin)}</span><span style="display:inline-flex;align-items:center;gap:4px">${ICONS.clock} Last checked ${esc(a.checked)}</span>${n ? `<span class="chip crit">${ICONS.bell}${n} new alert${n > 1 ? 's' : ''}</span>` : `<span class="chip good">${ICONS.check}Up to date</span>`}`;
+  const lvl = ['', 'Low', 'Moderate', 'High', 'Severe'][a.flood.level];
+  const openApps = a.apps.filter(x => !/Approved|force/.test(x.status)).length;
+  $('#shKpis').innerHTML = [
+    ['Zoning', a.zoning.code, a.zoning.statusLabel, a.zoning.status],
+    ['Official Plan', a.op.designation, a.op.statusLabel, a.op.status],
+    ['Secondary plan', a.op.secondary.split(' ·')[0], a.op.secondary.includes('·') ? a.op.secondary.split('· ')[1] : 'Area policies', 'neutral'],
+    ['Flood risk', lvl, a.flood.status, a.flood.level >= 3 ? 'crit' : a.flood.level === 2 ? 'warn' : 'good'],
+    ['Nearby applications', `${openApps} open · ${a.apps.length + a.permits.length} total`, 'within 1 km', openApps >= 2 ? 'warn' : 'good'],
+    [a.market.metric.split(' ·')[0], `${a.market.avgPrice} ${a.market.unit === '$/acre' ? '/ac' : '/sf'}`, `${a.market.yoy} YoY · ${a.market.dom} on market`, a.market.yoy.startsWith('−') ? 'crit' : 'good'],
+  ].map(([l, v, s, st]) => `<div class="kpi"><div class="lbl">${l}</div><div class="val">${esc(v)}</div><div class="sub ${st}">${st === 'crit' ? ICONS.warn : st === 'warn' ? ICONS.info : st === 'good' ? ICONS.check : ''}<span>${esc(s)}</span></div></div>`).join('');
+  const counts = { development: a.apps.length + a.permits.length, activity: ALERTS.filter(x => x.asset === a.id).length };
+  $('#shTabs').innerHTML = TABS.map(([id, l]) => `<button class="${state.tab === id ? 'active' : ''}" data-tab="${id}">${l}${counts[id] ? `<span class="count ${id === 'activity' && n ? 'hot' : ''}">${counts[id]}</span>` : ''}</button>`).join('');
+  $$('#shTabs button').forEach(b => b.addEventListener('click', () => { state.tab = b.dataset.tab; renderSheet(); }));
+  $('#shBody').innerHTML = renderTab(a); $('#shBody').scrollTop = 0;
+  if (state.tab === 'market') wireChart(a);
+}
+const sevChip = (s, t) => `<span class="chip ${s}">${s === 'crit' ? ICONS.warn : s === 'good' ? ICONS.check : ICONS.info}${esc(t)}</span>`;
+const layerOn = (a, id) => a.layers.includes(id);
+const offNote = (a, id, what) => layerOn(a, id) ? '' : `<div class="empty">${esc(what)} is not monitored for this asset. <button class="btn sm" style="margin-left:8px" onclick="toggleLayer('${a.id}','${id}')">Turn on</button></div>`;
+
+function renderTab(a) {
+  switch (state.tab) {
+    case 'overview': return `
+      <div class="grid-3">
+        <div class="block"><header><h3>Property</h3><div class="right">${esc(a.city)} · ${esc(a.ward)}</div></header><div class="body"><dl class="facts">
+          <dt>Lot area</dt><dd class="num">${esc(a.lot.area)}</dd><dt>Frontage × depth</dt><dd class="num">${esc(a.lot.frontage)} × ${esc(a.lot.depth)}</dd><dt>Gross floor area</dt><dd class="num">${esc(a.lot.gfa)}</dd><dt>Year built</dt><dd class="num">${esc(a.lot.built)}</dd><dt>Current use</dt><dd>${esc(a.lot.use)}</dd><dt>Roll number</dt><dd class="num">${esc(a.roll)}</dd><dt>MPAC assessed</dt><dd class="num">${esc(a.market.assessed)}</dd><dt>Property tax</dt><dd class="num">${esc(a.market.tax)}</dd></dl></div></div>
+        <div class="block"><header><h3>Monitoring status</h3><div class="right">${a.layers.length} of ${ALL_LAYERS.length} layers</div></header><div class="body list">
+          ${LAYER_GROUPS.map(g => { const on = g.layers.filter(l => layerOn(a, l.id)); return `<div class="row"><div class="ic ${on.length ? 'good' : ''}">${on.length ? ICONS.check : ICONS.info}</div><div><div class="t">${esc(g.name)}</div><div class="d">${on.length ? on.map(l => l.name).join(', ') : 'Not monitored'}</div></div><div class="r"><span class="num">${on.length}/${g.layers.length}</span>${on.some(l => a.rules[l.id]) ? `<span class="chip good" style="padding:0 6px">${ICONS.bell}alerts</span>` : ''}</div></div>`; }).join('')}
+          <div style="padding-top:12px"><button class="btn sm" onclick="showPanel('layers')">${ICONS.bell}Manage layers &amp; alerts</button></div></div></div>
+        <div class="block"><header><h3>What changed</h3><div class="right">Last 30 days</div></header><div class="body">
+          ${(() => { const list = ALERTS.filter(x => x.asset === a.id); return list.length ? `<div class="timeline">${list.map(x => `<div class="tl-item ${x.sev === 'crit' ? 'crit' : ''}"><div class="when">${esc(x.when)}</div><div class="what">${esc(x.title)}</div></div>`).join('')}</div>` : '<div class="empty">No changes detected in the last 30 days.</div>'; })()}
+        </div></div>
+      </div>`;
+    case 'planning': return `
+      <div class="grid-2">
+        <div class="block"><header><h3>Zoning by-law</h3><div class="right">${sevChip(a.zoning.status, a.zoning.statusLabel)}</div></header><div class="body">
+          ${offNote(a, 'zoning', 'Zoning')}<dl class="facts"><dt>Zone</dt><dd>${esc(a.zoning.code)}</dd><dt>By-law</dt><dd>${esc(a.zoning.bylaw)}</dd><dt>Permitted uses</dt><dd>${esc(a.zoning.uses)}</dd><dt>Max height</dt><dd class="num">${esc(a.zoning.height)}</dd><dt>Max density</dt><dd class="num">${esc(a.zoning.density)}</dd><dt>Last amended</dt><dd>${esc(a.zoning.amended)}</dd></dl></div></div>
+        <div class="block"><header><h3>Official Plan</h3><div class="right">${sevChip(a.op.status, a.op.statusLabel)}</div></header><div class="body">
+          <dl class="facts"><dt>Designation</dt><dd>${esc(a.op.designation)}</dd><dt>Plan</dt><dd>${esc(a.op.plan)}</dd><dt>Policy reference</dt><dd>${esc(a.op.chapter)}</dd><dt>Secondary plan</dt><dd>${esc(a.op.secondary)}</dd></dl></div></div>
+        <div class="block"><header><h3>Cultural heritage</h3><div class="right">${sevChip(a.heritage.level, a.heritage.status)}</div></header><div class="body">
+          ${offNote(a, 'heritage', 'Heritage')}<dl class="facts"><dt>Register status</dt><dd>${esc(a.heritage.status)}</dd><dt>Heritage district</dt><dd>${esc(a.heritage.hcd)}</dd><dt>Nearest heritage</dt><dd>${esc(a.heritage.nearest)}</dd></dl></div></div>
+        <div class="block"><header><h3>Planning amendments nearby</h3><div class="right">ZBA · OPA · variances</div></header><div class="body list">
+          ${a.apps.filter(x => /Zoning|Official|Variance|Committee/.test(x.type)).map(x => `<div class="row"><div class="ic ${x.sev}">${ICONS.zoning}</div><div><div class="t">${esc(x.type)} · ${esc(x.addr)}</div><div class="d">${esc(x.desc)} · ${esc(x.ref)}</div></div><div class="r"><span class="chip ${x.sev}" style="padding:0 6px">${esc(x.status)}</span><span class="num">${esc(x.dist)} · ${esc(x.date)}</span></div></div>`).join('') || '<div class="empty">No planning amendments within 1 km.</div>'}
+        </div></div>
+      </div>`;
+    case 'development': return `
+      <div class="grid-2">
+        <div class="block"><header><h3>Development applications</h3><div class="right">within 1 km · ${a.apps.length}</div></header><div class="body list">
+          ${offNote(a, 'apps', 'Development applications')}${a.apps.map(x => `<div class="row"><div class="ic ${x.sev}">${ICONS.app}</div><div><div class="t">${esc(x.addr)}</div><div class="d">${esc(x.type)} · ${esc(x.desc)}<br><span style="color:var(--text-3)">${esc(x.ref)}</span></div></div><div class="r"><span class="chip ${x.sev}" style="padding:0 6px">${esc(x.status)}</span><span class="num">${esc(x.dist)} · ${esc(x.date)}</span></div></div>`).join('')}
+        </div></div>
+        <div>
+          <div class="block"><header><h3>Building permits</h3><div class="right">within 500 m · ${a.permits.length}</div></header><div class="body list">
+            ${offNote(a, 'permits', 'Building permits')}${a.permits.map(x => `<div class="row"><div class="ic ${x.sev}">${ICONS.permit}</div><div><div class="t">${esc(x.addr)}</div><div class="d">${esc(x.type)} · ${esc(x.desc)}</div></div><div class="r"><span class="num">${esc(x.dist)}</span><span>${esc(x.date)}</span></div></div>`).join('')}
+          </div></div>
+          <div class="block" style="margin-top:18px"><header><h3>Pipeline within 1 km</h3><div class="right">proposed units &amp; GFA</div></header><div class="body">
+            <div class="stat-row" style="margin:0"><div class="stat"><div class="lbl">Proposed units</div><div class="val num">${esc({ greenlaw: '310', booth: '5,770', lakeshore: '1,020', yonge: '3,340', middleline: '0' }[a.id] || '—')}</div></div><div class="stat"><div class="lbl">Storeys (max)</div><div class="val num">${esc({ greenlaw: '12', booth: '38', lakeshore: '60', yonge: '60', middleline: '—' }[a.id] || '—')}</div></div><div class="stat"><div class="lbl">Under construction</div><div class="val num">${esc({ greenlaw: '2', booth: '4', lakeshore: '3', yonge: '6', middleline: '0' }[a.id] || '—')}</div></div></div>
+          </div></div>
+        </div>
+      </div>`;
+    case 'risk': { const lvl = ['', 'Low', 'Moderate', 'High', 'Severe'][a.flood.level]; return `
+      <div class="grid-3">
+        <div class="block"><header><h3>Flood hazard</h3><div class="right">${sevChip(a.flood.level >= 3 ? 'crit' : a.flood.level === 2 ? 'warn' : 'good', lvl)}</div></header><div class="body">
+          ${offNote(a, 'flood', 'Flood hazard')}<div class="risk-meter" data-level="${a.flood.level}"><span></span><span></span><span></span><span></span></div>
+          <dl class="facts" style="margin-top:12px"><dt>Status</dt><dd>${esc(a.flood.status)}</dd><dt>Authority</dt><dd>${esc(a.flood.authority)}</dd><dt>Detail</dt><dd style="font-weight:400">${esc(a.flood.detail)}</dd></dl></div></div>
+        <div class="block"><header><h3>Environmental</h3><div class="right">${sevChip(a.env.level, a.env.status)}</div></header><div class="body"><dl class="facts"><dt>Records of site condition</dt><dd>${esc(a.env.status)}</dd><dt>Source</dt><dd>Ontario Environmental Site Registry</dd><dt>Soil &amp; groundwater</dt><dd>${a.env.level === 'good' ? 'No known impacts' : 'Historical industrial use nearby'}</dd></dl></div></div>
+        <div class="block"><header><h3>Other hazards</h3><div class="right">screened weekly</div></header><div class="body list">
+          ${[['Erosion hazard', a.flood.level >= 3 ? 'warn' : 'good', a.flood.level >= 3 ? 'Within shoreline / valley setback' : 'None mapped'], ['Wildland fire', 'good', 'Not applicable'], ['Contaminated sites (1 km)', a.env.level, a.env.status], ['Rail / pipeline setback', a.id === 'booth' ? 'warn' : 'good', a.id === 'booth' ? 'GO / VIA corridor 180 m' : 'None within 300 m'], ['Noise & vibration', a.id === 'yonge' || a.id === 'booth' ? 'warn' : 'good', a.id === 'yonge' ? 'Eglinton Crosstown, arterial' : a.id === 'booth' ? 'Rail corridor, Lake Shore' : 'Local streets only']].map(([t, s, d]) => `<div class="row"><div class="ic ${s}">${s === 'good' ? ICONS.check : ICONS.warn}</div><div><div class="t">${t}</div><div class="d">${esc(d)}</div></div><div class="r"></div></div>`).join('')}
+        </div></div>
+      </div>`; }
+    case 'market': return `
+      <div class="stat-row"><div class="stat"><div class="lbl">${esc(a.market.metric)}</div><div class="val num">${esc(a.market.avgPrice)} <span style="font-size:13px;color:var(--text-2)">${esc(a.market.unit)}</span></div><div class="delta ${a.market.yoy.startsWith('−') ? 'down' : 'up'}">${esc(a.market.yoy)} vs. last year</div></div><div class="stat"><div class="lbl">Days on market</div><div class="val num">${esc(a.market.dom)}</div><div class="delta" style="color:var(--text-2)">median · last 90 days</div></div><div class="stat"><div class="lbl">Rent</div><div class="val num">${esc(a.market.rent)}</div><div class="delta" style="color:var(--text-2)">${esc(a.market.rentSub)}</div></div></div>
+      <div class="grid-2">
+        <div class="block"><header><h3>${esc(a.market.metric)}</h3><div class="right">24 months · ${esc(a.market.unit)}</div></header><div class="body">
+          ${offNote(a, 'sales', 'Sales comparables')}<div class="legend"><span style="--c:var(--accent-deep)">Within ${a.map.rural ? '10 km' : a.id === 'yonge' ? '2 km' : '1 km'}</span><span style="--c:var(--series-2)">${esc(a.city)} average, same class</span></div>
+          <div class="chart-wrap" id="chart">${chartSVG(a)}<div class="chart-tip" id="chartTip"></div></div></div></div>
+        <div class="block"><header><h3>Recent comparable sales</h3><div class="right">registered transfers</div></header><div class="body tbl-wrap" style="padding:0 8px 4px"><table class="tbl"><thead><tr><th>Property</th><th>Closed</th><th class="r">Price</th><th class="r">${esc(a.market.unit)}</th></tr></thead><tbody>${a.market.comps.map(c => `<tr><td>${esc(c[0])}</td><td>${esc(c[1])}</td><td class="r num">${esc(c[2])}</td><td class="r num">${esc(c[3])}</td></tr>`).join('')}</tbody></table></div></div>
+      </div>`;
+    case 'activity': { const list = ALERTS.filter(x => x.asset === a.id); return `
+      <div class="block"><header><h3>Activity for ${esc(a.address)}</h3><div class="right"><button class="btn sm" onclick="showPanel('alerts')">${ICONS.bell}All alerts</button></div></header><div class="body">
+        ${list.length ? list.map(x => alertHTML(x, false)).join('') : '<div class="empty">No activity yet. Alerts you set for this asset will appear here.</div>'}</div></div>`; }
+  }
+  return '';
+}
+
+/* ----- Chart ----- */
+const MONTHS = (() => { const out = []; for (let i = 23; i >= 0; i--) { const d = new Date(TODAY.getFullYear(), TODAY.getMonth() - i, 1); out.push(d); } return out; })();
+const mlabel = d => d.toLocaleString('en-CA', { month: 'short' }) + (d.getMonth() === 0 || d === MONTHS[0] ? ` ${d.getFullYear()}` : '');
+function chartSVG(a) {
+  const W = 560, H = 230, P = { l: 52, r: 16, t: 14, b: 30 };
+  const all = [...a.market.local, ...a.market.city]; const lo = Math.min(...all) * 0.96, hi = Math.max(...all) * 1.04;
+  const x = i => P.l + i * (W - P.l - P.r) / 23, y = v => P.t + (hi - v) / (hi - lo) * (H - P.t - P.b);
+  const path = s => s.map((v, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+  const ticks = 4; let grid = '';
+  for (let i = 0; i <= ticks; i++) { const v = lo + (hi - lo) * i / ticks; grid += `<line x1="${P.l}" x2="${W - P.r}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}" stroke="var(--border)" stroke-width="1"/><text x="${P.l - 8}" y="${(y(v) + 4).toFixed(1)}" text-anchor="end" font-size="11" fill="var(--text-3)" class="num">${v >= 10000 ? (v / 1000).toFixed(1) + 'k' : Math.round(v).toLocaleString()}</text>`; }
+  let xl = ''; [0, 6, 12, 18, 23].forEach(i => { xl += `<text x="${x(i).toFixed(1)}" y="${H - 8}" text-anchor="${i === 0 ? 'start' : i === 23 ? 'end' : 'middle'}" font-size="11" fill="var(--text-3)">${mlabel(MONTHS[i])}</text>`; });
+  const loc = a.market.local, cty = a.market.city; const fmt = v => v >= 10000 ? '$' + v.toLocaleString() : '$' + v;
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(a.market.metric)} over 24 months">${grid}${xl}
+    <path d="${path(loc)} L${x(23).toFixed(1)},${(H - P.b).toFixed(1)} L${P.l},${(H - P.b).toFixed(1)} Z" fill="var(--accent-deep)" opacity=".08"/>
+    <path d="${path(cty)}" fill="none" stroke="var(--series-2)" stroke-width="2" stroke-linejoin="round"/>
+    <path d="${path(loc)}" fill="none" stroke="var(--accent-deep)" stroke-width="2.2" stroke-linejoin="round"/>
+    <circle cx="${x(23)}" cy="${y(loc[23])}" r="4" fill="var(--accent-deep)" stroke="var(--surface)" stroke-width="2"/><circle cx="${x(23)}" cy="${y(cty[23])}" r="4" fill="var(--series-2)" stroke="var(--surface)" stroke-width="2"/>
+    <text x="${x(23) - 6}" y="${(y(loc[23]) - (loc[23] > cty[23] ? 9 : -16)).toFixed(1)}" text-anchor="end" font-size="11" font-weight="600" fill="var(--text)" class="num">${fmt(loc[23])}</text>
+    <line id="xhair" x1="0" x2="0" y1="${P.t}" y2="${H - P.b}" stroke="var(--text-3)" stroke-dasharray="3 3" style="display:none"/>
+    <rect id="chartHit" x="${P.l}" y="${P.t}" width="${W - P.l - P.r}" height="${H - P.t - P.b}" fill="transparent"/></svg>`;
+}
+function wireChart(a) {
+  const wrap = $('#chart'); if (!wrap) return; const svg = $('svg', wrap), hit = $('#chartHit', wrap), xh = $('#xhair', wrap), tip = $('#chartTip');
+  const W = 560, P = { l: 52, r: 16 }; const fmt = v => '$' + v.toLocaleString();
+  hit.addEventListener('pointermove', e => {
+    const r = svg.getBoundingClientRect(); const px = (e.clientX - r.left) / r.width * W; const i = Math.max(0, Math.min(23, Math.round((px - P.l) / ((W - P.l - P.r) / 23))));
+    const xx = P.l + i * (W - P.l - P.r) / 23; xh.setAttribute('x1', xx); xh.setAttribute('x2', xx); xh.style.display = '';
+    tip.style.display = 'block'; tip.innerHTML = `<b>${MONTHS[i].toLocaleString('en-CA', { month: 'long', year: 'numeric' })}</b><br><span style="color:var(--accent-deep)">●</span> Local ${fmt(a.market.local[i])} ${esc(a.market.unit)}<br><span style="color:var(--series-2)">●</span> ${esc(a.city)} ${fmt(a.market.city[i])} ${esc(a.market.unit)}`;
+    const left = e.clientX - wrap.getBoundingClientRect().left; tip.style.left = (left > wrap.clientWidth - 190 ? left - 190 : left + 12) + 'px'; tip.style.top = (e.clientY - wrap.getBoundingClientRect().top - 60) + 'px';
+  });
+  hit.addEventListener('pointerleave', () => { tip.style.display = 'none'; xh.style.display = 'none'; });
+}
+
+/* =========================================================
+   Layers panel
+   ========================================================= */
+function toggleLayer(assetId, layerId) {
+  const a = asset(assetId); if (!a) return;
+  const i = a.layers.indexOf(layerId); if (i >= 0) { a.layers.splice(i, 1); toast(`${LAYER[layerId].name} removed for ${a.address}`); } else { a.layers.push(layerId); toast(`Now monitoring ${LAYER[layerId].name} for ${a.address}`); }
+  renderLayers(); renderMainMap(); renderCards(); if (state.sheet !== 'closed' && state.selected === assetId) renderSheet(); renderRules();
+}
+window.toggleLayer = toggleLayer; window.showPanel = showPanel;
+const openGroups = new Set(['planning', 'development']);
+function renderLayers() {
+  const a = asset(state.selected) || ASSETS[0]; const wrap = $('#layersList'); wrap.innerHTML = '';
+  if (!a) { wrap.innerHTML = '<div class="empty">Add an asset to configure monitored layers.</div>'; return; }
+  const q = state.layerSearch.toLowerCase();
+  LAYER_GROUPS.forEach(g => {
+    const items = g.layers.filter(l => !q || (l.name + ' ' + l.sub).toLowerCase().includes(q)); if (!items.length) return;
+    const on = g.layers.filter(l => a.layers.includes(l.id)).length;
+    const el = document.createElement('div'); el.className = 'lgroup' + (openGroups.has(g.id) || q ? ' open' : '');
+    el.innerHTML = `<button class="hdr"><span>${esc(g.name)}</span><span class="st">${on ? `<span class="dot"></span>${on} on` : 'off'}${ICONS.chev}</span></button><div class="items">${items.map(l => { const isOn = a.layers.includes(l.id); const rule = a.rules[l.id]; return `
+      <div class="layer ${isOn ? '' : 'off'}" data-l="${l.id}"><div><div class="n">${esc(l.name)}</div><div class="s">${rule ? `${ICONS.bell.replace('class="i"', 'class="i" style="width:12px;height:12px;vertical-align:-2px;stroke:var(--accent-deep)"')} ${esc(rule.trigger)} · ${esc(rule.radius)} · ${esc(rule.freq.split(' (')[0])}` : esc(l.sub)}</div></div>
+      <button class="bell ${rule ? 'on' : ''}" title="${rule ? 'Edit alert' : 'Set alert'}" ${isOn ? '' : 'disabled'} data-bell="${l.id}">${ICONS.bell}</button>
+      <button class="switch ${isOn ? 'on' : ''}" role="switch" aria-checked="${isOn}" aria-label="Monitor ${esc(l.name)}" data-sw="${l.id}"></button></div>`; }).join('')}</div>`;
+    $('.hdr', el).addEventListener('click', () => { openGroups.has(g.id) ? openGroups.delete(g.id) : openGroups.add(g.id); renderLayers(); });
+    $$('[data-sw]', el).forEach(b => b.addEventListener('click', () => toggleLayer(a.id, b.dataset.sw)));
+    $$('[data-bell]', el).forEach(b => b.addEventListener('click', () => openRule(a.id, b.dataset.bell)));
+    wrap.appendChild(el);
+  });
+}
+$('#layersAllOn').addEventListener('click', () => { const a = asset(state.selected) || ASSETS[0]; if (!a) return; a.layers = ALL_LAYERS.map(l => l.id); renderLayers(); renderMainMap(); renderCards(); toast(`All ${ALL_LAYERS.length} layers on for ${a.address}`); });
+$('#searchLayers').addEventListener('input', e => { state.layerSearch = e.target.value; renderLayers(); });
+$('#layersAssetSel').addEventListener('change', e => selectAsset(e.target.value));
+
+/* ----- Alert rule modal ----- */
+function openRule(assetId, layerId) {
+  const a = asset(assetId), l = LAYER[layerId]; state.rule = { assetId, layerId }; const rule = a.rules[layerId];
+  $('#ruleTitle').textContent = rule ? 'Edit alert' : 'Set alert'; $('#ruleLayerName').textContent = l.name; $('#ruleAssetName').textContent = `${a.address}, ${a.city}`;
+  $('#ruleTriggers').innerHTML = l.triggers.map((t, i) => `<label><input type="radio" name="rt" value="${esc(t)}" ${rule ? (rule.trigger === t ? 'checked' : '') : i === 0 ? 'checked' : ''}>${esc(t)}</label>`).join('');
+  $$('input[name="rr"]').forEach(r => r.checked = rule ? rule.radius === r.value : r.value === '500 m');
+  $$('input[name="rc"]').forEach(c => c.checked = rule ? rule.channels.includes(c.value) : ['In-app', 'Email'].includes(c.value));
+  $('#ruleFreq').value = rule ? rule.freq : 'Instantly'; $('#ruleRemove').style.display = rule ? '' : 'none';
+  openModal('#ruleModal');
+}
+$('#ruleSave').addEventListener('click', () => {
+  const { assetId, layerId } = state.rule; const a = asset(assetId);
+  const channels = $$('input[name="rc"]:checked').map(c => c.value); if (!channels.length) return toast('Choose at least one delivery channel');
+  a.rules[layerId] = { trigger: $('input[name="rt"]:checked').value, radius: $('input[name="rr"]:checked').value, channels, freq: $('#ruleFreq').value };
+  closeModal(); renderLayers(); renderRules(); if (state.sheet !== 'closed') renderSheet(); toast(`Alert saved · ${LAYER[layerId].name} for ${a.address}`);
+});
+$('#ruleRemove').addEventListener('click', () => { const { assetId, layerId } = state.rule; delete asset(assetId).rules[layerId]; closeModal(); renderLayers(); renderRules(); toast(`Alert removed · ${LAYER[layerId].name}`); });
+
+/* =========================================================
+   Alerts panel
+   ========================================================= */
+function alertHTML(x, withAsset = true) {
+  const a = asset(x.asset); const ic = { apps: 'app', permits: 'permit', zoning: 'zoning', op: 'op', flood: 'flood', sales: 'sale', heritage: 'heritage', coa: 'coa', sp: 'op', transit: 'app', env: 'flood', rent: 'sale', mpac: 'sale' }[x.layer];
+  return `<div class="alert ${x.unread ? 'unread' : ''}" data-alert="${x.id}"><div class="ic ${x.sev}">${ICONS[ic]}</div><div><div class="top"><span class="t">${esc(x.title)}</span><span class="w">${esc(x.ago)}</span>${x.unread ? '<span class="u"></span>' : ''}</div><div class="d">${esc(x.desc)}</div><div class="a">${withAsset && a ? `${ICONS.pin.replace('class="i"', 'class="i" style="width:13px;height:13px"')}${esc(a.address)}, ${esc(a.city)} · ` : ''}${esc(LAYER[x.layer].name)}</div></div></div>`;
+}
+function renderAlerts() {
+  let list = ALERTS.slice();
+  if (state.afilter === 'unread') list = list.filter(x => x.unread); else if (state.afilter !== 'all') list = list.filter(x => x.cat === state.afilter);
+  $('#alertsList').innerHTML = list.length ? list.map(x => alertHTML(x)).join('') : '<div class="empty">No alerts here. You’re all caught up.</div>';
+  $$('#alertsList .alert').forEach(el => el.addEventListener('click', () => { const x = ALERTS.find(y => y.id == el.dataset.alert); x.unread = false; updateBadges(); openSheet(x.asset, x.tab); renderAlerts(); }));
+  renderRules(); updateBadges(); renderDash();
+}
+function renderRules() {
+  const rows = []; ASSETS.forEach(a => Object.entries(a.rules).forEach(([lid, r]) => rows.push(`<div class="rule"><div><div class="n">${esc(LAYER[lid].name)} · ${esc(r.trigger)}</div><div class="s">${esc(a.address)} · ${esc(r.radius)} · ${esc(r.channels.join(', '))} · ${esc(r.freq)}</div></div><button class="bell on" title="Edit alert" data-r="${a.id}|${lid}">${ICONS.bell}</button></div>`)));
+  const rulesHTML = rows.join('') || '<div class="empty">No alert rules yet. Set one from Monitored layers.</div>';
+  $('#rulesList').innerHTML = rulesHTML; $('#dashRules').innerHTML = rulesHTML; $('#dashRuleCount').textContent = rows.length + ' active';
+  $$('#rulesList [data-r], #dashRules [data-r]').forEach(b => b.addEventListener('click', () => { const [aid, lid] = b.dataset.r.split('|'); openRule(aid, lid); }));
+}
+function updateBadges() { const n = ALERTS.filter(x => x.unread).length; [$('#navBadge'), $('#tabBadge')].forEach(b => { b.textContent = n; b.style.display = n ? '' : 'none'; }); }
+$$('#afilters button').forEach(b => b.addEventListener('click', () => { state.afilter = b.dataset.af; $$('#afilters button').forEach(x => x.classList.toggle('on', x === b)); renderAlerts(); }));
+$('#markRead').addEventListener('click', () => { ALERTS.forEach(x => x.unread = false); renderAlerts(); renderCards(); if (state.sheet !== 'closed') renderSheet(); toast('All alerts marked as read'); });
+
+/* =========================================================
+   Panel tabs, search, view toggles
+   ========================================================= */
+function showPanel(id) { if (state.mode !== 'map') setMode('map'); $('#app').classList.remove('panel-collapsed'); state.ptab = id; $$('.ptabs [data-pt]').forEach(b => b.classList.toggle('active', b.dataset.pt === id)); $$('.pview').forEach(v => v.classList.toggle('active', v.id === 'pv-' + id)); if (id === 'layers') renderLayers(); if (id === 'alerts') renderAlerts(); }
+$$('.ptabs [data-pt]').forEach(b => b.addEventListener('click', () => showPanel(b.dataset.pt)));
+$('.ptabs .collapse').addEventListener('click', e => { const c = $('#app').classList.toggle('panel-collapsed'); e.currentTarget.title = c ? 'Expand panel' : 'Collapse panel'; setTimeout(() => { renderMainMap(); if (!c) renderCards(); }, 30); });
+$('#searchAssets').addEventListener('input', e => { state.search = e.target.value; renderCards(); });
+$('#filterSel').addEventListener('change', e => { state.filter = e.target.value; renderCards(); });
+$('#sortSel').addEventListener('change', e => { state.sort = e.target.value; renderCards(); });
+$('#viewGrid').addEventListener('click', () => { state.view = 'grid'; $('#viewGrid').classList.add('on'); $('#viewList').classList.remove('on'); renderCards(); });
+$('#viewList').addEventListener('click', () => { state.view = 'list'; $('#viewList').classList.add('on'); $('#viewGrid').classList.remove('on'); renderCards(); });
+$$('[data-nav]').forEach(a => a.addEventListener('click', e => { e.preventDefault(); toast(`${a.textContent.trim()} opens in the full LandLogic platform`); }));
+$('.sidebar .foot').addEventListener('click', () => toast('Sidebar collapse is available in the full platform'));
+(() => { const [zIn, zOut, zReset] = $$('.ctl-br button');
+  zIn.addEventListener('click', () => { state.zoom = Math.min(2, state.zoom * 1.25); renderMainMap(); });
+  zOut.addEventListener('click', () => { state.zoom = Math.max(0.64, state.zoom / 1.25); renderMainMap(); });
+  zReset.addEventListener('click', () => { state.zoom = 1; renderMainMap(); });
+  $$('.ctl-tr button, .ctl-tl').forEach(b => b.addEventListener('click', () => toast(`${b.title} is available in the full platform`)));
+})();
+
+/* =========================================================
+   Add asset
+   ========================================================= */
+function openModal(sel) { $('#overlay').classList.add('open'); $(sel).classList.add('open'); const f = $('input[type="text"], input:not([type="hidden"])', $(sel)); if (f) setTimeout(() => f.focus(), 50); }
+function closeModal() { $('#overlay').classList.remove('open'); $$('.modal').forEach(m => m.classList.remove('open')); }
+$$('[data-close]').forEach(b => b.addEventListener('click', closeModal)); $('#overlay').addEventListener('click', closeModal);
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal(); $('#cardMenu').classList.remove('open'); } });
+$('#addAsset').addEventListener('click', () => { state.addPick = null; $('#addrInput').value = ''; $('#suggest').classList.remove('open'); $('#addPreview').hidden = true; $('#addConfirm').disabled = true; openModal('#addModal'); });
+$('#addrInput').addEventListener('input', e => {
+  const q = e.target.value.trim().toLowerCase(); const box = $('#suggest');
+  if (q.length < 1) { box.classList.remove('open'); return; }
+  const hits = SUGGESTIONS.filter(s => (s.a + ' ' + s.c).toLowerCase().includes(q)).slice(0, 5);
+  const list = hits.length ? hits : SUGGESTIONS.slice(0, 3);
+  box.innerHTML = list.map((s, i) => `<button data-i="${SUGGESTIONS.indexOf(s)}">${ICONS.pin.replace('class="i"', 'class="i" style="width:18px;height:18px;color:var(--text-3)"')}<span><div class="sa">${esc(s.a)}</div><div class="sc">${esc(s.c)}</div></span><span class="chip neutral">${esc(s.cls)}</span></button>`).join('');
+  box.classList.add('open');
+  $$('button', box).forEach(b => b.addEventListener('click', () => pickSuggestion(SUGGESTIONS[+b.dataset.i])));
+});
+function pickSuggestion(s) {
+  state.addPick = s; $('#addrInput').value = s.a; $('#suggest').classList.remove('open');
+  $('#apAddr').textContent = `${s.a}, ${s.c.split(',')[0]}`; $('#apDesc').textContent = `${s.sub} · ${s.c.split('· ')[1]}`;
+  $$('input[name="acls"]').forEach(r => r.checked = r.value === s.cls);
+  $('#addPreview').hidden = false; drawMap($('#addPreviewCanvas'), { seed: s.seed, angle: s.angle, rural: s.rural, muni: '', streets: [] }, { thumb: true, parcelW: 80 });
+  $('#addConfirm').disabled = false;
+}
+$('#addConfirm').addEventListener('click', () => {
+  const s = state.addPick; if (!s) return; const cls = $('input[name="acls"]:checked').value; const city = s.c.split(',')[0];
+  const checks = $$('#addModal .checks input'); const chosen = []; const map = [['zoning', 'op', 'sp'], ['apps', 'coa'], ['permits'], ['flood', 'env'], ['heritage'], ['sales', 'mpac']];
+  checks.forEach((c, i) => { if (c.checked) chosen.push(...map[i]); });
+  const base = ASSETS.find(a => a.cls === cls) || ASSETS[0];
+  const id = 'a' + Date.now();
+  const a = JSON.parse(JSON.stringify(base));
+  Object.assign(a, { id, address: s.a, city, cls, sub: s.sub, added: '2026-09-15', checked: 'Just now', pin: s.c.replace(/.*(PIN|Roll) /, ''), layers: chosen, rules: { apps: { trigger: 'Application submitted', radius: '500 m', channels: ['In-app', 'Email'], freq: 'Instantly' } }, apps: base.apps.slice(0, 1), permits: base.permits.slice(0, 1) });
+  a.map = { ...base.map, seed: s.seed, angle: s.angle, rural: !!s.rural, water: false, flood: chosen.includes('flood') && s.rural ? { x: 0, y: 0, w: 1, h: .25 } : null, muni: city, streets: s.rural ? ['Highway 3', 'Con 4', 'Town Line'] : [s.a.replace(/^\d+\s/, ''), 'Church St', 'Jarvis St', 'Bay St', 'Adelaide St W'], pins: base.map.pins.slice(0, 2) };
+  a.zoning.statusLabel = 'Baseline captured'; a.zoning.status = 'good'; a.op.status = 'good'; a.op.statusLabel = 'Baseline captured';
+  ASSETS.unshift(a); closeModal(); renderAll();
+  if (state.mode === 'dash') { const tr = $(`#dtable tr[data-id="${id}"]`); if (tr) { tr.classList.add('flash'); tr.scrollIntoView({ block: 'nearest' }); } } else openSheet(id);
+  toast(`${s.a} added · monitoring ${chosen.length} layers`);
+});
+
+/* =========================================================
+   Dashboard (table) view
+   ========================================================= */
+const floodLbl = a => ['', 'Low', 'Moderate', 'High', 'Severe'][a.flood.level];
+const floodSev = a => a.flood.level >= 3 ? 'crit' : a.flood.level === 2 ? 'warn' : 'good';
+const openApps = a => a.apps.filter(x => !/Approved|force/.test(x.status)).length;
+const yoyNum = a => parseFloat(a.market.yoy.replace('−', '-').replace('+', '')) || 0;
+const planningChanged = a => a.zoning.status !== 'good' || a.op.status !== 'good';
+const dst = (sev, text) => `<div class="d-st"><span class="sdot ${sev}"></span><span>${esc(text)}</span></div>`;
+const COLS = [
+  { id: 'address', label: 'Address', fixed: true, sort: a => a.address, cell: a => `<div class="d-addr">${esc(a.address)}</div><div class="d-sub">${esc(a.sub)}</div>` },
+  { id: 'flags', label: 'Flags', sort: a => assetAlerts(a).length, cell: a => { const un = assetAlerts(a); const all = ALERTS.filter(x => x.asset === a.id); if (un.length) { const top = un.find(x => x.sev === 'crit') || un[0]; return `<button class="chip crit" data-flag>${ICONS.bell}${un.length} new</button>${dst(top.sev, top.title)}`; } return `<span class="chip good">${ICONS.check}Up to date</span>${all.length ? dst('', 'Last: ' + all[0].ago) : ''}`; } },
+  { id: 'muni', label: 'Municipality', sort: a => a.city, cell: a => `<div class="d-main">${esc(a.city)}</div><div class="d-sub">${esc(a.ward)}</div>` },
+  { id: 'cls', label: 'Asset class', sort: a => a.cls, cell: a => `<span class="chip neutral">${esc(a.cls)}</span>` },
+  { id: 'zoning', label: 'Zoning', sort: a => a.zoning.code, cell: a => `<div class="d-main">${esc(a.zoning.code)}</div>${dst(a.zoning.status, a.zoning.statusLabel)}` },
+  { id: 'op', label: 'Official Plan', sort: a => a.op.designation, cell: a => `<div class="d-main">${esc(a.op.designation)}</div>${dst(a.op.status, a.op.statusLabel)}` },
+  { id: 'sp', label: 'Secondary plan', sort: a => a.op.secondary, cell: a => { const [m, s] = a.op.secondary.split(' · '); return `<div class="d-main">${esc(m)}</div>${s ? `<div class="d-sub">${esc(s)}</div>` : ''}`; } },
+  { id: 'heritage', label: 'Cultural heritage', sort: a => a.heritage.status, cell: a => `<div class="d-main">${esc(a.heritage.status)}</div>${dst(a.heritage.level, a.heritage.nearest)}` },
+  { id: 'flood', label: 'Flood risk', sort: a => a.flood.level, cell: a => `<div class="d-main">${floodLbl(a)}</div><div class="risk-meter" data-level="${a.flood.level}" style="max-width:90px"><span></span><span></span><span></span><span></span></div>${dst(floodSev(a), a.flood.status)}` },
+  { id: 'apps', label: 'Dev. applications', sort: a => openApps(a), cell: a => { const t = a.apps[0]; return `<div class="d-main num">${openApps(a)} open · ${a.apps.length} total</div>${t ? dst(t.sev, t.addr + ' · ' + t.status) : ''}`; } },
+  { id: 'permits', label: 'Permits nearby', sort: a => a.permits.length, cell: a => { const t = a.permits[0]; return `<div class="d-main num">${a.permits.length} in 500 m</div>${t ? dst(t.sev, t.date + ' · ' + t.dist) : ''}`; } },
+  { id: 'market', label: 'Avg. sale', sort: a => yoyNum(a), cell: a => `<div class="d-main num">${esc(a.market.avgPrice)} <span style="color:var(--text-2);font-weight:400">${esc(a.market.unit)}</span></div>${dst(yoyNum(a) < 0 ? 'crit' : 'good', a.market.yoy + ' YoY · ' + a.market.dom)}` },
+  { id: 'assessed', label: 'Assessed value', sort: a => a.market.assessed, cell: a => `<div class="d-main num">${esc(a.market.assessed)}</div><div class="d-sub num">Tax ${esc(a.market.tax)}</div>` },
+  { id: 'layers', label: 'Monitoring', sort: a => a.layers.length, cell: a => `<div class="d-main num">${a.layers.length} of ${ALL_LAYERS.length} layers</div><div class="d-sub">${Object.keys(a.rules).length} alert rule${Object.keys(a.rules).length === 1 ? '' : 's'}</div>` },
+  { id: 'checked', label: 'Last checked', sort: a => a.checked, cell: a => `<div class="d-main">${esc(a.checked)}</div><div class="d-sub">Added ${fmtDate(a.added)}</div>` },
+];
+const TILE_FILTER = { all: () => true, flagged: a => assetAlerts(a).length > 0, planning: planningChanged, flood: a => a.flood.level >= 2, apps: a => openApps(a) > 0 };
+function dashRows() {
+  const d = state.dash; let list = ASSETS.filter(TILE_FILTER[d.tile]);
+  if (d.cls !== 'all') list = list.filter(a => a.cls === d.cls);
+  if (d.muni !== 'all') list = list.filter(a => a.city === d.muni);
+  if (d.search) { const q = d.search.toLowerCase(); list = list.filter(a => [a.address, a.city, a.cls, a.sub, a.zoning.code, a.op.designation, a.op.secondary, a.heritage.status, a.flood.status].join(' ').toLowerCase().includes(q)); }
+  const col = COLS.find(c => c.id === d.sort) || COLS[1];
+  return list.map((a, i) => [a, i]).sort(([x, i], [y, j]) => { const A = col.sort(x), B = col.sort(y); const c = typeof A === 'number' ? A - B : String(A).localeCompare(String(B)); return c ? c * d.dir : i - j; }).map(([a]) => a);
+}
+function renderDash() {
+  if (!$('#dtable')) return; const d = state.dash;
+  const unread = ALERTS.filter(x => x.unread).length, flagged = ASSETS.filter(TILE_FILTER.flagged).length, munis = new Set(ASSETS.map(a => a.city)).size;
+  $('#dashSub').textContent = `${ASSETS.length} assets in ${munis} municipalit${munis === 1 ? 'y' : 'ies'} · all layers checked today at 06:00`;
+  const tiles = [
+    ['all', 'Assets monitored', ASSETS.length, `${ASSETS.reduce((n, a) => n + a.layers.length, 0)} layer checks a day`],
+    ['flagged', 'New flags', unread, `on ${flagged} asset${flagged === 1 ? '' : 's'}`],
+    ['planning', 'Planning changes', ASSETS.filter(planningChanged).length, 'zoning or Official Plan in motion'],
+    ['flood', 'Flood-regulated', ASSETS.filter(TILE_FILTER.flood).length, 'within a conservation authority limit'],
+    ['apps', 'Open applications nearby', ASSETS.reduce((n, a) => n + openApps(a), 0), `near ${ASSETS.filter(TILE_FILTER.apps).length} assets`],
+  ];
+  $('#tiles').innerHTML = tiles.map(([id, l, v, s]) => `<button class="tile ${d.tile === id ? 'on' : ''}" data-tile="${id}"><span class="lbl">${l}</span><span class="val num">${v}</span><span class="sub">${esc(s)}</span></button>`).join('');
+  $$('#tiles .tile').forEach(b => b.addEventListener('click', () => { d.tile = d.tile === b.dataset.tile ? 'all' : b.dataset.tile; renderDash(); }));
+  const cols = COLS.filter(c => !d.hidden.has(c.id)); const rows = dashRows();
+  $('#dtable thead').innerHTML = '<tr>' + cols.map(c => `<th data-col="${c.id}" class="${d.sort === c.id ? 'sorted' : ''}">${c.label}<span class="arr">${d.sort === c.id ? (d.dir > 0 ? '▲' : '▼') : '▲'}</span></th>`).join('') + '<th class="c-act"></th></tr>';
+  $('#dtable tbody').innerHTML = rows.length ? rows.map(a => `<tr data-id="${a.id}">${cols.map(c => `<td>${c.cell(a)}</td>`).join('')}<td class="c-act"><button class="d-more" data-more aria-label="More options">···</button></td></tr>`).join('') : `<tr><td colspan="${cols.length + 1}" style="max-width:none"><div class="empty">No assets match these filters.</div></td></tr>`;
+  $('#dashCount').textContent = `${rows.length} of ${ASSETS.length} assets`;
+  $$('#dtable th[data-col]').forEach(th => th.addEventListener('click', () => { const id = th.dataset.col; if (d.sort === id) d.dir *= -1; else { d.sort = id; d.dir = ['flags', 'flood', 'apps', 'permits', 'layers'].includes(id) ? -1 : 1; } renderDash(); }));
+  $$('#dtable tbody tr[data-id]').forEach(tr => tr.addEventListener('click', e => {
+    const id = tr.dataset.id;
+    if (e.target.closest('[data-more]')) { e.stopPropagation(); openMenu(e.target.closest('[data-more]'), id); return; }
+    openSheet(id, e.target.closest('[data-flag]') ? 'activity' : 'overview');
+  }));
+  const latest = ALERTS.slice(0, 6);
+  $('#dashAlerts').innerHTML = latest.length ? latest.map(x => alertHTML(x)).join('') : '<div class="empty">No flags yet.</div>';
+  $$('#dashAlerts .alert').forEach(el => el.addEventListener('click', () => { const x = ALERTS.find(y => y.id == el.dataset.alert); x.unread = false; openSheet(x.asset, x.tab); renderAlerts(); }));
+}
+function setMode(mode) {
+  state.mode = mode; $('#app').classList.toggle('mode-dash', mode === 'dash');
+  $$('.seg button').forEach(b => b.classList.toggle('on', b.dataset.mode === mode));
+  $('#cardMenu').classList.remove('open'); $('#colMenu').classList.remove('open');
+  if (mode === 'map') { renderCards(); renderMainMap(); } else renderDash();
+}
+window.setMode = setMode;
+$$('.seg button').forEach(b => b.addEventListener('click', () => setMode(b.dataset.mode)));
+$('#dashSearch').addEventListener('input', e => { state.dash.search = e.target.value; renderDash(); });
+$('#dashClass').addEventListener('change', e => { state.dash.cls = e.target.value; renderDash(); });
+$('#dashMuni').addEventListener('change', e => { state.dash.muni = e.target.value; renderDash(); });
+$('#dashAdd').addEventListener('click', () => $('#addAsset').click());
+$('#dashMarkRead').addEventListener('click', () => $('#markRead').click());
+$('#dashCols').addEventListener('click', e => {
+  const menu = $('#colMenu'); if (menu.classList.contains('open')) { menu.classList.remove('open'); return; }
+  menu.innerHTML = COLS.filter(c => !c.fixed).map(c => `<label><input type="checkbox" data-c="${c.id}" ${state.dash.hidden.has(c.id) ? '' : 'checked'}>${c.label}</label>`).join('');
+  const r = e.currentTarget.getBoundingClientRect(); menu.style.left = Math.min(r.left, window.innerWidth - 230) + 'px'; menu.style.top = (r.bottom + 4 + window.scrollY) + 'px'; menu.classList.add('open');
+  $$('input', menu).forEach(i => i.addEventListener('change', () => { i.checked ? state.dash.hidden.delete(i.dataset.c) : state.dash.hidden.add(i.dataset.c); renderDash(); }));
+});
+
+/* =========================================================
+   Toast & boot
+   ========================================================= */
+let toastT; function toast(msg) { const t = $('#toast'); $('#toastText').textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 2600); }
+function renderAll() {
+  $('#layersAssetSel').innerHTML = ASSETS.map(a => `<option value="${a.id}">${esc(a.address)}, ${esc(a.city)}</option>`).join('');
+  if (state.selected) $('#layersAssetSel').value = state.selected;
+  const munis = [...new Set(ASSETS.map(a => a.city))].sort(); if (!munis.includes(state.dash.muni)) state.dash.muni = 'all';
+  $('#dashMuni').innerHTML = '<option value="all">All municipalities</option>' + munis.map(m => `<option ${state.dash.muni === m ? 'selected' : ''}>${esc(m)}</option>`).join('');
+  renderCards(); renderMainMap(); renderLayers(); renderAlerts();
+}
+window.addEventListener('resize', () => { renderMainMap(); $$('.card canvas').forEach(c => { const a = asset(c.closest('.card').dataset.id); if (a) drawMap(c, a.map, { thumb: true, showFlood: a.layers.includes('flood'), parcelW: 90 }); }); });
+if (window.matchMedia) window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', renderAll);
+document.fonts && document.fonts.ready.then(renderMainMap);
+renderAll();
+selectAsset('greenlaw');
+setMode('dash');
+</script>
+</body>
+</html>

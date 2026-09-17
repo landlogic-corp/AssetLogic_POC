@@ -1,0 +1,15 @@
+# Static site: no build step. Netlify serves index.html from the repository root.
+[build]
+  publish = "."
+  command = "node scripts/build-index.js"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+# Prototype with example data: keep it out of search engines.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
