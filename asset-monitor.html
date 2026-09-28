@@ -1103,10 +1103,15 @@ function renderMapbox() {
   if (mbReady) addSubjectLayer();
   if (!a || !a.lnglat) return;
   a.map.pins.filter(p => p.lnglat && a.layers.includes(PIN_LAYER[p.t])).forEach(p => { mbMarkers.push(new mapboxgl.Marker({ element: pinEl(a, p), anchor: 'bottom' }).setLngLat(p.lnglat).addTo(mb)); });
-  const H = $('#mapArea').clientHeight, key = a.id + '|' + state.sheet + '|' + H + '|' + $('#app').classList.contains('panel-collapsed');
+  const H = $('#mapArea').clientHeight;
+  if (!H) { mbLastKey = ''; return; } // map is hidden (dashboard view); position it when it becomes visible
+  const key = a.id + '|' + state.sheet + '|' + H + '|' + $('#app').classList.contains('panel-collapsed');
   if (key === mbLastKey) return; mbLastKey = key;
-  const changed = a.id !== mbLastAsset; mbLastAsset = a.id;
-  mb.easeTo({ center: a.lnglat, zoom: changed ? 15.7 : mb.getZoom(), offset: [0, state.sheet === 'closed' ? 0 : -Math.round(H * 0.27)], duration: changed ? 900 : 500, essential: true });
+  const changed = a.id !== mbLastAsset || mb.getZoom() < 13; mbLastAsset = a.id;
+  const target = { center: a.lnglat, zoom: changed ? 15.7 : mb.getZoom(), offset: [0, state.sheet === 'closed' ? 0 : -Math.round(H * 0.27)] };
+  mb.easeTo({ ...target, duration: changed ? 900 : 500, essential: true });
+  // If animation frames are not running (hidden tab, throttled browser), the ease never finishes: snap instead.
+  setTimeout(() => { if (mbLastKey === key && mb.isEasing()) { mb.stop(); mb.jumpTo(target); } }, changed ? 1200 : 800);
 }
 function renderMainMap() {
   if (MB.enabled) return renderMapbox();
