@@ -22,6 +22,9 @@ Live: https://guileless-monstera-a74dd9.netlify.app
 | `index.html` | Generated from the source by the build script (git-ignored). Netlify rebuilds it on every deploy and stamps the Mapbox token from its environment variables. |
 | `scripts/build-index.js` | Wraps the source in a full HTML document and writes `index.html`. |
 | `netlify.toml` | Netlify settings: publish the repo root, run the build script, send `noindex` headers. |
+| `.env.example` | Names of the local configuration values. Copy to `.env.local` (git-ignored) and fill in. |
+| `docs/schema.sql` | Database schema (PostgreSQL + PostGIS): reference, GIS layers and product tables. |
+| `docs/setup-database.md` | Steps to create the Cloud SQL database and how secrets are handled. |
 | `landlogic-logo-colour.svg` | The LandLogic logo used in the sidebar. |
 
 ## Run it locally

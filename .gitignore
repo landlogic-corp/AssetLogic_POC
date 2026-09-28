@@ -1,8 +1,32 @@
+# Generated at build time (Netlify rebuilds it and stamps the Mapbox token in)
+index.html
+
+# Local configuration and secrets: never commit
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*-key.json
+*sa-key*.json
+secrets/
+.assetlogic/
+
+# Local data drops (parcel GeoJSON, exports) are imported into the database, not committed
+data/
+parcels/
+*.geojson
+*.gpkg
+*.shp
+*.dbf
+*.shx
+*.prj
+*.zip
+
+# Tooling
 .netlify/
+.claude/
 node_modules/
 .DS_Store
 Thumbs.db
-.claude/
-.env.local
-.env
-index.html

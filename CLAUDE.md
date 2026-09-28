@@ -30,6 +30,14 @@ node scripts/publish.js --check
 - `origin` is pinned to the SorooshLLG login. Two GitHub accounts are stored on this machine, so keep the
   username in the remote URL or pushes will try to prompt and fail.
 
+## Secrets and data
+- The GitHub repo is PUBLIC. Never commit tokens, keys, passwords, .env files, service-account JSON,
+  or data drops (parcel GeoJSON etc.). They live in `.env.local`, in the `.assetlogic` folder under the
+  user's home directory, and in Netlify environment variables. .gitignore already blocks them; keep it that way.
+- Never print a token, key or password in chat or in tool output. Redact when inspecting env files.
+- Database access from the site goes through Netlify Functions only; the browser never holds
+  database credentials.
+
 ## Look and feel
 - Match the LandLogic platform: sidebar, light grey map, white right panel, dark green headings.
 - Text must never overflow its container. Let values wrap; avoid no-wrap chips in narrow boxes.
