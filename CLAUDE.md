@@ -4,8 +4,12 @@
 - Edit `asset-monitor.html` only. `index.html` is generated from it; never edit `index.html` by hand.
 - The page is one self-contained file (HTML, CSS, JavaScript). All data in it is example data.
 
-## Publishing every change
-After any change the user should see, publish it. Do not stop at a local edit.
+## Code review before anything reaches GitHub
+The user reviews every change before it is pushed. After editing, rebuild `index.html`
+(`node scripts/build-index.js`), check the page locally, and describe the change to the user.
+Do not commit or push until the user confirms. Never run the publish script on your own initiative.
+
+## Publishing (only after the user confirms)
 
 ```bash
 node scripts/publish.js "Describe the change"
