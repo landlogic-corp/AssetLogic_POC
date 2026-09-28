@@ -19,18 +19,21 @@ Live: https://guileless-monstera-a74dd9.netlify.app
 | File | Purpose |
 |---|---|
 | `asset-monitor.html` | The source. Edit this file. One self-contained page: HTML, CSS and JavaScript. |
-| `index.html` | Generated from the source by the build script. This is what the site serves. |
+| `index.html` | Generated from the source by the build script (git-ignored). Netlify rebuilds it on every deploy and stamps the Mapbox token from its environment variables. |
 | `scripts/build-index.js` | Wraps the source in a full HTML document and writes `index.html`. |
 | `netlify.toml` | Netlify settings: publish the repo root, run the build script, send `noindex` headers. |
 | `landlogic-logo-colour.svg` | The LandLogic logo used in the sidebar. |
 
 ## Run it locally
 
-Open `index.html` in a browser. After editing `asset-monitor.html`, regenerate it:
+Create `.env.local` with `MAPBOX_TOKEN=pk...` and `MAPBOX_STYLE=mapbox://styles/...` (git-ignored), then:
 
 ```bash
 node scripts/build-index.js
+node scripts/dev-server.js
 ```
+
+Open http://localhost:8765. The token is URL-restricted, so the page must be served from localhost, not opened as a file. Without a token the page falls back to a drawn map.
 
 ## Deploy
 
