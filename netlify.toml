@@ -13,3 +13,10 @@
     X-Robots-Tag = "noindex, nofollow"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
+
+# Serverless functions (database access lives here, never in the page)
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+  external_node_modules = ["pg", "@google-cloud/cloud-sql-connector"]
+  included_files = ["scripts/db.js"]
