@@ -4,9 +4,12 @@
   "description": "Clickable proof of concept for an asset monitoring module inside the LandLogic platform. All property, planning and market data in it is example data.",
   "scripts": {
     "build": "node scripts/build-index.js",
-    "dev": "node scripts/dev-server.js",
+    "dev": "node --use-system-ca scripts/dev-server.js",
     "publish": "node scripts/publish.js",
-    "db:check": "node --use-system-ca scripts/db-check.js"
+    "db:check": "node --use-system-ca scripts/db-check.js",
+    "db:migrate": "node --use-system-ca scripts/db-migrate.js",
+    "db:load-assets": "node --use-system-ca scripts/load-assets.js",
+    "db:import-parcels": "node --use-system-ca scripts/import-parcels.js"
   },
   "repository": {
     "type": "git",

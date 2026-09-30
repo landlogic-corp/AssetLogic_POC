@@ -936,6 +936,23 @@ const SUGGESTIONS = [
 /* =========================================================
    State
    ========================================================= */
+// API: the page talks only to Netlify Functions; the database is never reached from the browser.
+const API = { base: '/.netlify/functions', live: false, error: null };
+async function api(name, opts = {}) {
+  const r = await fetch(`${API.base}/${name}${opts.query ? '?' + new URLSearchParams(opts.query) : ''}`, { method: opts.method || (opts.body ? 'POST' : 'GET'), headers: opts.body ? { 'content-type': 'application/json' } : {}, body: opts.body ? JSON.stringify(opts.body) : undefined });
+  const j = await r.json().catch(() => ({ ok: false, error: 'bad response' }));
+  if (!r.ok || j.ok === false) throw new Error(j.error || ('HTTP ' + r.status));
+  return j;
+}
+async function loadLive() {
+  try {
+    const j = await api('assets');
+    ASSETS.splice(0, ASSETS.length, ...j.assets); ALERTS.splice(0, ALERTS.length, ...j.alerts);
+    API.live = true; API.error = null;
+  } catch (e) { API.live = false; API.error = e.message; }
+}
+const persist = (p) => p.catch(e => toast('Not saved: ' + e.message));
+
 const state = { mode: 'dash', zoom: 1, dash: { search: '', cls: 'all', muni: 'all', tile: 'all', sort: 'flags', dir: -1, hidden: new Set(['checked']) }, selected: null, sheet: 'closed', tab: 'overview', view: 'grid', filter: 'all', sort: 'recent', search: '', ptab: 'watch', afilter: 'all', layerSearch: '', rule: null, addPick: null };
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -1082,11 +1099,28 @@ function pinEl(a, p) {
 let mb = null, mbReady = false, mbMarkers = [], mbLastAsset = null, mbLastKey = '';
 const EMPTY_FC = { type: 'FeatureCollection', features: [] };
 function addSubjectLayer() {
+  // Parcels in the current view (fetched from the database when zoomed in), then the subject parcel.
+  if (!mb.getSource('parcels')) mb.addSource('parcels', { type: 'geojson', data: EMPTY_FC, promoteId: 'id' });
+  if (!mb.getLayer('parcels-fill')) mb.addLayer({ id: 'parcels-fill', type: 'fill', source: 'parcels', paint: { 'fill-color': '#1E8E5A', 'fill-opacity': ['case', ['boolean', ['feature-state', 'hover'], false], 0.18, 0.04] } });
+  if (!mb.getLayer('parcels-line')) mb.addLayer({ id: 'parcels-line', type: 'line', source: 'parcels', paint: { 'line-color': '#5FAE8C', 'line-width': ['interpolate', ['linear'], ['zoom'], 15, 0.4, 18, 1.2], 'line-opacity': 0.9 } });
   if (!mb.getSource('subject')) mb.addSource('subject', { type: 'geojson', data: EMPTY_FC });
-  if (!mb.getLayer('subject-halo')) mb.addLayer({ id: 'subject-halo', type: 'circle', source: 'subject', paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 13, 6, 16, 18, 19, 60], 'circle-color': '#35C98A', 'circle-opacity': 0.28, 'circle-stroke-color': '#1E8E5A', 'circle-stroke-width': 2 } });
-  if (!mb.getLayer('subject-dot')) mb.addLayer({ id: 'subject-dot', type: 'circle', source: 'subject', paint: { 'circle-radius': 4, 'circle-color': '#1E8E5A', 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 1.5 } });
+  if (!mb.getLayer('subject-fill')) mb.addLayer({ id: 'subject-fill', type: 'fill', source: 'subject', filter: ['==', ['geometry-type'], 'Polygon'], paint: { 'fill-color': '#35C98A', 'fill-opacity': 0.42 } });
+  if (!mb.getLayer('subject-line')) mb.addLayer({ id: 'subject-line', type: 'line', source: 'subject', filter: ['==', ['geometry-type'], 'Polygon'], paint: { 'line-color': '#1E8E5A', 'line-width': 2.5 } });
+  if (!mb.getLayer('subject-halo')) mb.addLayer({ id: 'subject-halo', type: 'circle', source: 'subject', filter: ['==', ['geometry-type'], 'Point'], paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 13, 6, 16, 18, 19, 60], 'circle-color': '#35C98A', 'circle-opacity': 0.28, 'circle-stroke-color': '#1E8E5A', 'circle-stroke-width': 2 } });
+  if (!mb.getLayer('subject-dot')) mb.addLayer({ id: 'subject-dot', type: 'circle', source: 'subject', filter: ['==', ['geometry-type'], 'Point'], paint: { 'circle-radius': 4, 'circle-color': '#1E8E5A', 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 1.5 } });
   const a = asset(state.selected);
-  mb.getSource('subject').setData(a && a.lnglat ? { type: 'FeatureCollection', features: [{ type: 'Feature', geometry: { type: 'Point', coordinates: a.lnglat }, properties: { name: a.name } }] } : EMPTY_FC);
+  const feats = [];
+  if (a && a.parcel && a.parcel.geojson) feats.push({ type: 'Feature', geometry: a.parcel.geojson, properties: { name: a.name } });
+  else if (a && a.lnglat) feats.push({ type: 'Feature', geometry: { type: 'Point', coordinates: a.lnglat }, properties: { name: a.name } });
+  mb.getSource('subject').setData({ type: 'FeatureCollection', features: feats });
+  loadParcelsInView();
+}
+let parcelsKey = '', parcelsHover = null;
+async function loadParcelsInView() {
+  if (!mb || !mbReady || !API.live || mb.getZoom() < 15) { if (mb && mbReady && mb.getSource('parcels') && mb.getZoom() < 15) mb.getSource('parcels').setData(EMPTY_FC); return; }
+  const b = mb.getBounds(); const bbox = [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()].map(v => v.toFixed(4)).join(',');
+  if (bbox === parcelsKey) return; parcelsKey = bbox;
+  try { const fc = await api('parcels', { query: { bbox } }); if (parcelsKey === bbox && mb.getSource('parcels')) mb.getSource('parcels').setData(fc); } catch (e) { /* keep last parcels */ }
 }
 function renderMapbox() {
   const a = asset(state.selected);
@@ -1095,7 +1129,11 @@ function renderMapbox() {
     mb = new mapboxgl.Map({ container: 'mbmap', style: MB.style, center: a && a.lnglat ? a.lnglat : [-79.65, 43.6], zoom: a ? 15.7 : 9, attributionControl: false, logoPosition: 'bottom-left', cooperativeGestures: false });
     mb.addControl(new mapboxgl.AttributionControl({ compact: true }), 'bottom-left');
     mb.addControl(new mapboxgl.ScaleControl({ maxWidth: 90, unit: 'metric' }), 'bottom-left');
-    mb.on('style.load', () => { mbReady = true; addSubjectLayer(); });
+    mb.on('style.load', () => { mbReady = true; parcelsKey = ''; addSubjectLayer(); });
+    mb.on('moveend', loadParcelsInView);
+    mb.on('mousemove', 'parcels-fill', e => { const id = e.features[0] && e.features[0].id; if (parcelsHover !== null && parcelsHover !== id) mb.setFeatureState({ source: 'parcels', id: parcelsHover }, { hover: false }); if (id != null) { mb.setFeatureState({ source: 'parcels', id }, { hover: true }); parcelsHover = id; } mb.getCanvas().style.cursor = 'pointer'; });
+    mb.on('mouseleave', 'parcels-fill', () => { if (parcelsHover !== null) mb.setFeatureState({ source: 'parcels', id: parcelsHover }, { hover: false }); parcelsHover = null; mb.getCanvas().style.cursor = ''; });
+    mb.on('click', 'parcels-fill', e => { const p = e.features[0] && e.features[0].properties; if (!p) return; const label = p.address || (p.pin ? 'PIN ' + p.pin : 'Parcel ' + p.id); toast(`${label} · parcel ${p.id}. Add it from “Add asset”.`); });
     mb.on('error', e => { if (e && e.error && /Unauthorized|401|403/.test(String(e.error.message || e.error))) toast('Mapbox rejected the token for this site. Check the token URL restrictions.'); });
   }
   mb.resize();
@@ -1186,6 +1224,7 @@ $$('#cardMenu button').forEach(b => b.addEventListener('click', () => {
 function removeAsset(id) {
   const i = ASSETS.findIndex(a => a.id === id); if (i < 0) return; const a = ASSETS[i];
   ASSETS.splice(i, 1); for (let j = ALERTS.length - 1; j >= 0; j--) if (ALERTS[j].asset === id) ALERTS.splice(j, 1);
+  if (API.live) persist(api('assets', { method: 'DELETE', query: { id } }));
   if (state.selected === id) { state.selected = null; closeSheet(); }
   renderAll(); toast(`${fullAddr(a)} removed from watchlist`);
 }
@@ -1358,7 +1397,8 @@ function wireChart(a) {
    ========================================================= */
 function toggleLayer(assetId, layerId) {
   const a = asset(assetId); if (!a) return;
-  const i = a.layers.indexOf(layerId); if (i >= 0) { a.layers.splice(i, 1); toast(`${LAYER[layerId].name} removed for ${fullAddr(a)}`); } else { a.layers.push(layerId); toast(`Now monitoring ${LAYER[layerId].name} for ${fullAddr(a)}`); }
+  const i = a.layers.indexOf(layerId); if (i >= 0) { a.layers.splice(i, 1); delete a.rules[layerId]; toast(`${LAYER[layerId].name} removed for ${fullAddr(a)}`); } else { a.layers.push(layerId); toast(`Now monitoring ${LAYER[layerId].name} for ${fullAddr(a)}`); }
+  if (API.live) persist(api('monitoring', { body: { action: 'layer', assetId, layerId, enabled: i < 0 } }));
   renderLayers(); renderMainMap(); renderCards(); if (state.sheet !== 'closed' && state.selected === assetId) renderSheet(); renderRules();
 }
 window.toggleLayer = toggleLayer; window.showPanel = showPanel;
@@ -1399,9 +1439,10 @@ $('#ruleSave').addEventListener('click', () => {
   const { assetId, layerId } = state.rule; const a = asset(assetId);
   const channels = $$('input[name="rc"]:checked').map(c => c.value); if (!channels.length) return toast('Choose at least one delivery channel');
   a.rules[layerId] = { trigger: $('input[name="rt"]:checked').value, radius: $('input[name="rr"]:checked').value, channels, freq: $('#ruleFreq').value };
+  if (API.live) persist(api('monitoring', { body: { action: 'rule', assetId, layerId, rule: a.rules[layerId] } }));
   closeModal(); renderLayers(); renderRules(); if (state.sheet !== 'closed') renderSheet(); toast(`Alert saved · ${LAYER[layerId].name} for ${fullAddr(a)}`);
 });
-$('#ruleRemove').addEventListener('click', () => { const { assetId, layerId } = state.rule; delete asset(assetId).rules[layerId]; closeModal(); renderLayers(); renderRules(); toast(`Alert removed · ${LAYER[layerId].name}`); });
+$('#ruleRemove').addEventListener('click', () => { const { assetId, layerId } = state.rule; delete asset(assetId).rules[layerId]; if (API.live) persist(api('monitoring', { body: { action: 'rule', assetId, layerId, rule: null } })); closeModal(); renderLayers(); renderRules(); toast(`Alert removed · ${LAYER[layerId].name}`); });
 
 /* =========================================================
    Alerts panel
@@ -1414,7 +1455,7 @@ function renderAlerts() {
   let list = ALERTS.slice();
   if (state.afilter === 'unread') list = list.filter(x => x.unread); else if (state.afilter !== 'all') list = list.filter(x => x.cat === state.afilter);
   $('#alertsList').innerHTML = list.length ? list.map(x => alertHTML(x)).join('') : '<div class="empty">No alerts here. You’re all caught up.</div>';
-  $$('#alertsList .alert').forEach(el => el.addEventListener('click', () => { const x = ALERTS.find(y => y.id == el.dataset.alert); x.unread = false; updateBadges(); openSheet(x.asset, x.tab); renderAlerts(); }));
+  $$('#alertsList .alert').forEach(el => el.addEventListener('click', () => { const x = ALERTS.find(y => y.id == el.dataset.alert); if (x.unread && API.live) persist(api('monitoring', { body: { action: 'read', alertId: x.id } })); x.unread = false; updateBadges(); openSheet(x.asset, x.tab); renderAlerts(); }));
   renderRules(); updateBadges(); renderDash();
 }
 function renderRules() {
@@ -1425,7 +1466,7 @@ function renderRules() {
 }
 function updateBadges() { const n = ALERTS.filter(x => x.unread).length; [$('#navBadge'), $('#tabBadge')].forEach(b => { b.textContent = n; b.style.display = n ? '' : 'none'; }); }
 $$('#afilters button').forEach(b => b.addEventListener('click', () => { state.afilter = b.dataset.af; $$('#afilters button').forEach(x => x.classList.toggle('on', x === b)); renderAlerts(); }));
-$('#markRead').addEventListener('click', () => { ALERTS.forEach(x => x.unread = false); renderAlerts(); renderCards(); if (state.sheet !== 'closed') renderSheet(); toast('All alerts marked as read'); });
+$('#markRead').addEventListener('click', () => { if (API.live) persist(api('monitoring', { body: { action: 'read', all: true } })); ALERTS.forEach(x => x.unread = false); renderAlerts(); renderCards(); if (state.sheet !== 'closed') renderSheet(); toast('All alerts marked as read'); });
 
 /* =========================================================
    Panel tabs, search, view toggles
@@ -1457,10 +1498,21 @@ function closeModal() { $('#overlay').classList.remove('open'); $$('.modal').for
 $$('[data-close]').forEach(b => b.addEventListener('click', closeModal)); $('#overlay').addEventListener('click', closeModal);
 document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal(); $('#cardMenu').classList.remove('open'); } });
 $('#addAsset').addEventListener('click', () => { state.addPick = null; $('#addrInput').value = ''; $('#suggest').classList.remove('open'); $('#addPreview').hidden = true; $('#addConfirm').disabled = true; openModal('#addModal'); });
+let suggestTimer = null;
+function renderSuggestions(list, box) {
+  box.innerHTML = list.length ? list.map((s, i) => `<button data-i="${i}">${ICONS.pin.replace('class="i"', 'class="i" style="width:18px;height:18px;color:var(--text-3)"')}<span><div class="sa">${esc(s.a)}, ${esc(s.city)}, ON</div><div class="sc">${esc(s.postal || '')}${MUNI[s.city] ? ' · ' + esc(MUNI[s.city].region) : ''}</div></span><span class="chip neutral">${esc(s.cls || 'Address')}</span></button>`).join('') : '<div class="empty">No matching address in Ontario.</div>';
+  box.classList.add('open');
+  $$('button', box).forEach(b => b.addEventListener('click', () => pickSuggestion(list[+b.dataset.i])));
+}
 $('#addrInput').addEventListener('input', e => {
-  const q = e.target.value.trim().toLowerCase(); const box = $('#suggest');
+  const q = e.target.value.trim(); const box = $('#suggest');
   if (q.length < 1) { box.classList.remove('open'); return; }
-  const hits = SUGGESTIONS.filter(s => (s.a + ' ' + s.city + ' ' + s.postal).toLowerCase().includes(q)).slice(0, 5);
+  if (API.live) {
+    clearTimeout(suggestTimer); if (q.length < 3) return;
+    suggestTimer = setTimeout(async () => { try { const j = await api('add-asset', { query: { q } }); renderSuggestions(j.suggestions.map(s => ({ a: s.address, city: s.city, postal: s.postal, lnglat: s.lnglat, cls: 'Residential', sub: 'Purpose-built rental apartment' })), box); } catch (err) { renderSuggestions([], box); } }, 250);
+    return;
+  }
+  const hits = SUGGESTIONS.filter(s => (s.a + ' ' + s.city + ' ' + s.postal).toLowerCase().includes(q.toLowerCase())).slice(0, 5);
   const list = hits.length ? hits : SUGGESTIONS.slice(0, 3);
   box.innerHTML = list.map((s, i) => `<button data-i="${SUGGESTIONS.indexOf(s)}">${ICONS.pin.replace('class="i"', 'class="i" style="width:18px;height:18px;color:var(--text-3)"')}<span><div class="sa">${esc(s.a)}, ${esc(s.city)}, ON</div><div class="sc">${esc(s.postal)} · ${esc(MUNI[s.city] ? MUNI[s.city].region : '')}</div></span><span class="chip neutral">${esc(s.cls)}</span></button>`).join('');
   box.classList.add('open');
@@ -1470,13 +1522,24 @@ function pickSuggestion(s) {
   state.addPick = s; $('#addrInput').value = s.a; $('#suggest').classList.remove('open');
   $('#apAddr').textContent = `${s.a}, ${s.city}, ON`; $('#apDesc').textContent = `${s.sub} · ${s.postal}`;
   $$('input[name="acls"]').forEach(r => r.checked = r.value === s.cls);
-  $('#addPreview').hidden = false; drawMap($('#addPreviewCanvas'), { seed: s.seed, angle: s.angle, rural: s.rural, muni: '', streets: [] }, { thumb: true, parcelW: 80 });
+  $('#addPreview').hidden = false; const pv = $('#addPreviewCanvas'); if (MB.enabled && s.lnglat) { pv.hidden = true; let img = $('#addPreviewImg'); if (!img) { img = document.createElement('img'); img.id = 'addPreviewImg'; img.alt = ''; img.style.cssText = 'width:110px;height:80px;border-radius:6px;object-fit:cover;display:block'; pv.parentNode.insertBefore(img, pv); } img.src = staticThumb(s.lnglat, 220, 160, 16); } else { pv.hidden = false; drawMap(pv, { seed: s.seed || 7, angle: s.angle || 0, rural: s.rural, muni: '', streets: [] }, { thumb: true, parcelW: 80 }); }
   $('#addConfirm').disabled = false;
 }
-$('#addConfirm').addEventListener('click', () => {
+$('#addConfirm').addEventListener('click', async () => {
   const s = state.addPick; if (!s) return; const cls = $('input[name="acls"]:checked').value; const city = s.city;
   const checks = $$('#addModal .checks input'); const chosen = []; const map = [['zoning', 'op', 'sp'], ['apps', 'coa'], ['permits'], ['flood', 'env'], ['heritage'], ['sales', 'mpac']];
   checks.forEach((c, i) => { if (c.checked) chosen.push(...map[i]); });
+  if (API.live) {
+    const btn = $('#addConfirm'); btn.disabled = true; btn.textContent = 'Locating parcel…';
+    try {
+      const j = await api('add-asset', { body: { address: s.a, city, cls, sub: s.sub || null, layers: chosen } });
+      ASSETS.unshift(j.asset); closeModal(); renderAll();
+      if (state.mode === 'dash') { const tr = $(`#dtable tr[data-id="${j.asset.id}"]`); if (tr) { tr.classList.add('flash'); tr.scrollIntoView({ block: 'nearest' }); } } else openSheet(j.asset.id);
+      toast(`${fullAddr(j.asset)} added${j.asset.parcel ? ' · parcel ' + (j.asset.parcel.address || j.asset.parcel.arn || j.asset.parcel.id) + ' linked' : ''} · monitoring ${chosen.length} layers`);
+    } catch (e) { toast('Could not add: ' + e.message); }
+    btn.disabled = false; btn.textContent = 'Add to watchlist';
+    return;
+  }
   const base = ASSETS.find(a => a.cls === cls) || ASSETS[0];
   const id = 'a' + Date.now();
   const a = JSON.parse(JSON.stringify(base));
@@ -1526,7 +1589,7 @@ function dashRows() {
 function renderDash() {
   if (!$('#dtable')) return; const d = state.dash;
   const unread = ALERTS.filter(x => x.unread).length, flagged = ASSETS.filter(TILE_FILTER.flagged).length, munis = new Set(ASSETS.map(a => a.city)).size;
-  $('#dashSub').textContent = `${ASSETS.length} assets in ${munis} municipalit${munis === 1 ? 'y' : 'ies'} · all layers checked today at 06:00`;
+  $('#dashSub').textContent = `${ASSETS.length} assets in ${munis} municipalit${munis === 1 ? 'y' : 'ies'} · ${API.live ? 'live from the AssetLogic database' : 'sample data (database not reachable' + (API.error ? ': ' + API.error : '') + ')'}`;
   const tiles = [
     ['all', 'Assets monitored', ASSETS.length, `${ASSETS.reduce((n, a) => n + a.layers.length, 0)} layer checks a day`],
     ['flagged', 'New flags', unread, `on ${flagged} asset${flagged === 1 ? '' : 's'}`],
@@ -1548,7 +1611,7 @@ function renderDash() {
   }));
   const latest = ALERTS.slice(0, 6);
   $('#dashAlerts').innerHTML = latest.length ? latest.map(x => alertHTML(x)).join('') : '<div class="empty">No flags yet.</div>';
-  $$('#dashAlerts .alert').forEach(el => el.addEventListener('click', () => { const x = ALERTS.find(y => y.id == el.dataset.alert); x.unread = false; openSheet(x.asset, x.tab); renderAlerts(); }));
+  $$('#dashAlerts .alert').forEach(el => el.addEventListener('click', () => { const x = ALERTS.find(y => y.id == el.dataset.alert); if (x.unread && API.live) persist(api('monitoring', { body: { action: 'read', alertId: x.id } })); x.unread = false; openSheet(x.asset, x.tab); renderAlerts(); }));
 }
 function setMode(mode) {
   state.mode = mode; $('#app').classList.toggle('mode-dash', mode === 'dash');
@@ -1584,7 +1647,11 @@ function renderAll() {
 window.addEventListener('resize', () => { renderMainMap(); $$('.card canvas').forEach(c => { const a = asset(c.closest('.card').dataset.id); if (a) drawMap(c, a.map, { thumb: true, showFlood: a.layers.includes('flood'), parcelW: 90 }); }); });
 if (window.matchMedia) window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', renderAll);
 document.fonts && document.fonts.ready.then(renderMainMap);
-renderAll();
-selectAsset('ossington');
-setMode('dash');
+(async () => {
+  await loadLive();
+  renderAll();
+  selectAsset(ASSETS[0] ? ASSETS[0].id : null);
+  setMode('dash');
+  if (!API.live) toast('Showing sample data: ' + (API.error || 'database not reachable'));
+})();
 </script>

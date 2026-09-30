@@ -406,6 +406,8 @@ DECLARE
   a        app.asset%ROWTYPE;
   g        geography;
   snap_id  bigint;
+  prev     app.asset_snapshot%ROWTYPE;   -- latest earlier snapshot: values carry forward where a layer has no data yet
+  carried  text[] := '{}';
   z        gis.zoning_area%ROWTYPE;
   o        gis.official_plan_area%ROWTYPE;
   s        gis.secondary_plan_area%ROWTYPE;
@@ -416,6 +418,8 @@ DECLARE
 BEGIN
   SELECT * INTO a FROM app.asset WHERE id = p_asset;
   IF a.id IS NULL THEN RAISE EXCEPTION 'asset % not found', p_asset; END IF;
+  SELECT * INTO prev FROM app.asset_snapshot WHERE asset_id = a.id ORDER BY taken_at DESC LIMIT 1;
+  IF a.parcel_id IS NULL THEN a.parcel_id := gis.parcel_at(a.location); UPDATE app.asset SET parcel_id = a.parcel_id WHERE id = a.id; END IF;
   SELECT geom INTO g FROM gis.parcel WHERE id = a.parcel_id;   -- parcel outline when linked …
   IF g IS NULL THEN g := a.location; END IF;                     -- … otherwise the geocoded point
 
@@ -434,19 +438,33 @@ BEGIN
     FROM gis.heritage_feature WHERE municipality_id = a.municipality_id AND NOT ST_Intersects(geom, g) AND ST_DWithin(geom, g, 100);
 
   SELECT CASE WHEN bool_or(hazard_type ILIKE '%floodplain%') THEN 'High'
-              WHEN count(*) > 0 THEN 'Medium' ELSE 'Low' END,
+              WHEN count(*) > 0 THEN 'Medium' ELSE NULL END,   -- NULL = no hazard layer rows intersect; caller decides
          string_agg(DISTINCT authority || ': ' || hazard_type, '; ')
     INTO f_risk, f_note
     FROM gis.hazard_area WHERE ST_Intersects(geom, g);
 
-  INSERT INTO app.asset_snapshot (asset_id, method, zoning_code, zoning_bylaw, zoning_area_id,
+  -- Layers that are not loaded yet return NULL; keep the previous value and note which fields were carried.
+  IF z.id IS NULL AND prev.zoning_code IS NOT NULL THEN carried := array_append(carried, 'zoning'); END IF;
+  IF o.id IS NULL AND prev.op_designation IS NOT NULL THEN carried := array_append(carried, 'official_plan'); END IF;
+  IF s.id IS NULL AND prev.secondary_plan IS NOT NULL THEN carried := array_append(carried, 'secondary_plan'); END IF;
+  IF h_on IS NULL AND h_near IS NULL AND prev.heritage_status IS NOT NULL AND NOT EXISTS (SELECT 1 FROM gis.heritage_feature WHERE municipality_id = a.municipality_id) THEN carried := array_append(carried, 'heritage'); END IF;
+  IF f_risk IS NULL AND prev.flood_risk IS NOT NULL AND NOT EXISTS (SELECT 1 FROM gis.hazard_area) THEN carried := array_append(carried, 'flood'); END IF;
+
+  INSERT INTO app.asset_snapshot (asset_id, method, zoning_code, zoning_bylaw, zoning_note, zoning_area_id,
       op_designation, op_area_id, secondary_plan, secondary_plan_id, heritage_status, heritage_note,
-      flood_risk, flood_note, applications_500m, permits_500m)
-  VALUES (a.id, 'spatial', z.zone_code, z.bylaw, z.id, o.designation, o.id, s.name, s.id,
-      coalesce(h_on, 'No designations on site'), h_near,
-      coalesce(f_risk, 'Low'), coalesce(f_note, 'Outside mapped hazard areas'),
-      (SELECT count(*) FROM gis.development_application d WHERE d.geom IS NOT NULL AND ST_DWithin(d.geom, g, 500)),
-      (SELECT count(*) FROM gis.building_permit b WHERE b.geom IS NOT NULL AND ST_DWithin(b.geom, g, 500)))
+      flood_risk, flood_note, applications_500m, permits_500m, extra)
+  VALUES (a.id, 'spatial',
+      coalesce(z.zone_code, prev.zoning_code), coalesce(z.bylaw, prev.zoning_bylaw), CASE WHEN z.id IS NULL THEN prev.zoning_note ELSE z.permitted_uses END, z.id,
+      coalesce(o.designation, prev.op_designation), o.id,
+      coalesce(s.name, prev.secondary_plan), s.id,
+      CASE WHEN 'heritage' = ANY(carried) THEN prev.heritage_status ELSE coalesce(h_on, 'No designations on site') END,
+      CASE WHEN 'heritage' = ANY(carried) THEN prev.heritage_note ELSE h_near END,
+      CASE WHEN 'flood' = ANY(carried) THEN prev.flood_risk ELSE coalesce(f_risk, 'Low') END,
+      CASE WHEN 'flood' = ANY(carried) THEN prev.flood_note ELSE coalesce(f_note, 'Outside mapped hazard areas') END,
+      -- Until a full applications feed is loaded, the reported total from the source sheet may exceed what we hold with coordinates.
+      GREATEST((SELECT count(*) FROM gis.development_application d WHERE d.geom IS NOT NULL AND ST_DWithin(d.geom, g, 500)), coalesce(prev.applications_500m, 0)),
+      (SELECT count(*) FROM gis.building_permit b WHERE b.geom IS NOT NULL AND ST_DWithin(b.geom, g, 500)),
+      coalesce(prev.extra, '{}'::jsonb) || jsonb_build_object('carried_forward', to_jsonb(carried)))
   RETURNING id INTO snap_id;
 
   UPDATE app.asset SET last_checked_at = now() WHERE id = a.id;
