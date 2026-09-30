@@ -2,7 +2,7 @@
 
 Newest first. Each entry says what changed and, at the top, where work resumes.
 
-Live site: https://guileless-monstera-a74dd9.netlify.app
+Live site: https://landlogic-assetmonitoring.netlify.app
 
 ## Where we are (paused 2026-09-30)
 
