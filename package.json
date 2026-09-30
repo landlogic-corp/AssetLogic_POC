@@ -1,5 +1,5 @@
 {
-  "name": "assetlogic-poc",
+  "name": "landlogic-asset-monitor",
   "version": "1.0.0",
   "description": "Clickable proof of concept for an asset monitoring module inside the LandLogic platform. All property, planning and market data in it is example data.",
   "scripts": {

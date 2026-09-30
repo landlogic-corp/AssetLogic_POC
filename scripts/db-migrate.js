@@ -1,4 +1,5 @@
-// Creates the schema from docs/schema.sql (once) and seeds reference data (idempotent).
+// Creates the schema from docs/internal/schema.sql (once) and seeds reference data (idempotent).
+// The schema file is internal and git-ignored; ask a project administrator for it.
 // Usage: node --use-system-ca scripts/db-migrate.js
 const fs = require('fs');
 const path = require('path');
@@ -45,8 +46,10 @@ const ADMIN_USER = ['admin@landlogic.ai', 'LandLogic admin', 'LandLogic'];
   const exists = await db.query(`select 1 from pg_namespace where nspname = 'app'`);
   if (exists.rowCount) console.log('Schema already exists; skipping DDL.');
   else {
-    const sql = fs.readFileSync(path.join(__dirname, '..', 'docs', 'schema.sql'), 'utf8');
-    const t = Date.now(); await db.query(sql); console.log(`Schema created from docs/schema.sql in ${Date.now() - t} ms`);
+    const schemaFile = path.join(__dirname, '..', 'docs', 'internal', 'schema.sql');
+    if (!fs.existsSync(schemaFile)) throw new Error('docs/internal/schema.sql not found. It is an internal file: ask a project administrator for it.');
+    const sql = fs.readFileSync(schemaFile, 'utf8');
+    const t = Date.now(); await db.query(sql); console.log(`Schema created from docs/internal/schema.sql in ${Date.now() - t} ms`);
   }
   for (const m of MUNICIPALITIES) await db.query(`insert into ref.municipality (name, province, upper_tier, conservation_authority, official_plan_name, zoning_bylaw_name) values ($1,'ON',$2,$3,$4,$5) on conflict (name, province) do update set upper_tier = excluded.upper_tier, conservation_authority = excluded.conservation_authority, official_plan_name = excluded.official_plan_name, zoning_bylaw_name = excluded.zoning_bylaw_name`, m);
   for (const s of SOURCES) await db.query(`insert into ref.data_source (code, name, kind, provider, notes) values ($1,$2,$3,$4,$5) on conflict (code) do update set name = excluded.name, notes = excluded.notes`, s);

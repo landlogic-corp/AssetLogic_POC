@@ -13,6 +13,9 @@ index.html
 secrets/
 .assetlogic/
 
+# Internal documentation (ERD, infrastructure map, full schema, database setup): never public
+docs/internal/
+
 # Local data drops (parcel GeoJSON, exports) are imported into the database, not committed
 data/
 parcels/

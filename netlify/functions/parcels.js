@@ -15,7 +15,7 @@ exports.handler = async (event) => {
     const r = await db.query(`select id, pin, address, geojson from gis.parcels_in_bbox($1, $2, $3, $4, 4000)`, [minLng, minLat, maxLng, maxLat]);
     return {
       statusCode: 200,
-      headers: { 'content-type': 'application/geo+json; charset=utf-8', 'cache-control': 'public, max-age=300' },
+      headers: { 'content-type': 'application/geo+json; charset=utf-8', 'cache-control': 'public, max-age=300', 'netlify-cdn-cache-control': 'public, max-age=3600, durable' },
       body: JSON.stringify({ ok: true, type: 'FeatureCollection', features: r.rows.map(p => ({ type: 'Feature', id: Number(p.id), properties: { id: Number(p.id), pin: p.pin, address: p.address }, geometry: p.geojson })) }),
     };
   } catch (e) { return fail(e); }

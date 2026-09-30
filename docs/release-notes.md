@@ -1,64 +1,101 @@
 # Release notes
 
-Live site: https://guileless-monstera-a74dd9.netlify.app · Repo: https://github.com/landlogic-corp/AssetLogic_POC
+Newest first. Each entry says what changed and, at the top, where work resumes.
 
-## 2026-09-28
+Live site: https://guileless-monstera-a74dd9.netlify.app
 
-### Shipped
-- **Real data.** The five placeholder properties were replaced by the eight buildings from the sample
-  apartment sheet (Toronto, Mississauga, Waterloo, Kitchener) with their zoning codes, Official Plan
-  designations, secondary plans, heritage notes, flood risk and active applications within 500 m.
-- **Fixes from review.** Zoning tags now show real codes; every address reads "street, municipality,
-  ON"; average sale is a per-unit multi-residential figure that agrees across KPI, chart and table.
-  Values the sheet does not provide (permits, environmental screening, lot sizes, assessments) are
-  shown as not available instead of invented.
-- **Real map.** Mapbox GL JS on the LandLogic light style, buildings and nearby applications at
-  geocoded coordinates, static map thumbnails, working zoom, 3D and satellite toggles. The token is
-  stamped in at build time from Netlify's environment and never enters the repository.
-- **Favicon** is the LandLogic colour icon.
-- **Publishing workflow.** One command rebuilds, commits, pushes and waits until Netlify serves the
-  new commit. A local dev server exists because the Mapbox token is URL-restricted.
-- **Schema v2** (`docs/schema.sql`): `ref` (provenance), `gis` (whole-city parcels plus zoning,
-  Official Plan, secondary plan, heritage, hazard, application, permit, sale and market layers) and
-  `app` (users, assets, fact snapshots, layers, alert rules, alerts). Every external record carries
-  source tracking and a JSON attributes column so the LandLogic database can feed the same tables
-  through an API or MCP later. `app.snapshot_asset()` derives an asset's facts by spatial join.
-- **Database provisioned** by LandLogic: Cloud SQL PostgreSQL 18 with PostGIS in Toronto, public IP
-  with no open networks, application user and service account. Netlify holds the credentials as
-  secret environment variables. A `db-health` function confirms Netlify reaches the database.
-- **Parcel files inspected** (`docs/data-sources.md`): Mississauga 166,923, Toronto 498,589 and
-  Waterloo Region 167,275 parcels, all WGS84, clean. All eight buildings fall inside a parcel.
-- **Security.** Full git history and working tree scanned: no token, key or password has ever been
-  committed. `.gitignore` blocks env files, keys, the parcels folder, data drops and the generated
-  page. The service-account key was moved out of the project folder to `~/.assetlogic/`.
+## Where we are (paused 2026-09-30)
 
-### Known blockers
-- **Local database access** fails on this machine because Norton Web Shield intercepts the encrypted
-  connection to the Cloud SQL port and the Google connector rejects the swapped certificate. Netlify
-  is unaffected. Needs a Norton exclusion for `node.exe` (HTTPS scanning) or for the instance IP on
-  port 3307.
-- **Cloud SQL SSL mode** still allows unencrypted connections; should be set to SSL-only.
+The prototype is a working application on a real database: real parcel boundaries for three cities,
+eight monitored properties, an API, a daily re-check, and a full documentation set. Work is paused
+here.
+
+### Resume with these, in order
+
+| # | Task | Why now | Needs from LandLogic |
+|---|---|---|---|
+| 1 | **Access control**: sign-in on the site and every function | Today anyone with the URL can change the watchlist | Decision: hosting provider's identity service, or LandLogic's existing login |
+| 2 | **Connect LandLogic data** through its API or MCP, one layer at a time: zoning, Official Plan, secondary plans, heritage, hazards, applications, permits, sales | Turns carried-forward facts into derived, live ones | Endpoint, credential (as a hosting environment variable), field documentation or a sample response per dataset |
+| 3 | **Tighten the database**: encrypted connections only; recreate the application login with minimal rights | Closes the two known configuration gaps | Administrator action in the database console |
+| 4 | **Address and identifier search for Toronto and Mississauga** | Their parcel files carry no addresses | Address-point datasets, or item 2 |
+| 5 | **Replace illustrative market data** with real sales and a real series | Currently placeholders | A sales source |
+| 6 | **Add a property by clicking its parcel** on the map | Natural next interaction now that parcels are drawn | Nothing |
+| 7 | **Alert delivery**: email and digests | Rules record a channel and frequency but nothing is sent yet | Choice of email service |
+| 8 | **Automated tests** for the functions and the snapshot logic | None exist | Nothing |
+
+### Open decisions
+
+- Whether to rewrite git history to remove the schema file that was public from 2026-09-28 to
+  2026-09-30. It is no longer in the working tree, but it remains in earlier commits.
+- Where the internal documents (`docs/internal/`) are backed up, since they are not in git.
+- Whether to keep the repository public. It is public to avoid hosting charges for private
+  organisation repositories.
 
 ## 2026-09-30
 
-### Shipped (local, awaiting review before push)
-- **Local database access** after a Norton Safe Web change (HTTPS scanning off; browser protection stays via the extension).
-- **Schema created** in Cloud SQL and seeded: 10 municipalities, data sources, 13 layers, admin user.
-- **Parcels imported**: Mississauga 166,923, Toronto 498,589, Waterloo Region 167,275 (all seven municipalities), 833k rows in about four minutes, each run logged in `ref.ingest_run`.
-- **Eight buildings loaded** with their sheet facts, layers, alert rules, alerts, nearby applications, comparables and market series; each linked to its parcel. `app.snapshot_asset()` now carries sheet facts forward for layers not loaded yet.
-- **API as Netlify Functions**: `assets` (list/detail/remove), `parcels` (current map view, capped), `add-asset` (geocoder suggestions; geocode → parcel → snapshot), `monitoring` (layers, rules, mark read, re-snapshot), `db-health`. Parameterised SQL and input validation throughout; credentials only in Netlify environment variables.
-- **Page wired to the API** with the sample data as automatic fallback; real parcel outlines drawn in the map view; every toggle, rule, alert and add/remove persists. Verified end to end locally, including adding 155 University Ave W (parcel found by roll number) and removing it.
-- **Local dev server** now runs the functions in-process at the same paths as production.
+### Added
+- **Documentation set.** README, architecture, directory guide, local setup, frontend, API,
+  database overview, data pipeline, deployment, security, contributing, troubleshooting, glossary.
+- **Internal documents**, kept out of git: database ERD and data dictionary, infrastructure map.
+  The full schema, the provisioning guide and the source-data mapping moved there too.
+- **Live database.** Structure created and seeded. About 833,000 parcels imported for Toronto,
+  Mississauga and the Region of Waterloo in roughly four minutes; every run logged.
+- **Sample properties loaded** and each linked to its real parcel.
+- **API.** Functions for assets, parcels in view, adding a property, monitoring settings, a health
+  check, and a daily re-check that turns changes into alerts.
+- **Page on live data.** Loads from the API with the built-in sample as automatic fallback; draws
+  real parcel outlines; saves layer toggles, alert rules, read state, additions and removals.
+- **Add a property end to end.** Address suggestions, geocoding, parcel match, first snapshot.
+- **Administrator access** to every schema for the database's admin login.
+- **Local dev server runs the functions**, at the same paths as production.
 
-### Known risk
-- The site has no sign-in, so anyone with the URL can change the watchlist. Acceptable for the review period only; add access control before sharing the link widely.
+### Changed
+- Snapshots carry forward a fact when the layer that would derive it is not loaded, and record that
+  they did.
+- Parcel responses are cached at the CDN.
+- `.env.example` no longer suggests any values.
 
-## Next session
+### Fixed
+- Local database access, which was blocked by security software inspecting encrypted connections.
 
-1. Review and push the API + page wiring; confirm `db-health` and the live page against Netlify.
-2. Access control for the write endpoints (simplest: Netlify Identity or a signed session cookie for the admin user).
-3. Tighten Cloud SQL SSL mode to SSL-only.
-4. Scheduled re-snapshot (Netlify scheduled function, daily) so changes become alerts automatically.
-5. Toronto and Mississauga address points for address/PIN search without geocoding.
-6. Sources for the remaining layers (zoning, OP, secondary plans, heritage, hazards, applications, permits, sales, market series) and their importers; replace the illustrative market and comparables data.
-7. "Add asset" by clicking a parcel on the map.
+## 2026-09-28
+
+### Added
+- **Real data.** Eight properties from a LandLogic sample sheet replaced the placeholders, with
+  zoning, Official Plan, secondary plan, heritage, flood risk and nearby applications.
+- **Real map.** Mapbox GL JS on the LandLogic basemap, geocoded locations, map thumbnails, working
+  zoom, 3D and satellite toggles. The token is injected at build time, never stored in the repository.
+- **Database design**, in three areas: reference and provenance, spatial layers, product.
+- **Publishing workflow**: one command builds, commits, pushes and confirms the live site.
+- LandLogic favicon.
+
+### Changed
+- Addresses always read "street, municipality, province".
+- Average sale is a per-unit multi-residential figure that agrees across the KPI, chart and table.
+- Facts the source does not provide are shown as not available rather than invented.
+- `index.html` is generated and no longer tracked.
+
+### Fixed
+- Map opening at the wrong zoom when first shown from the dashboard.
+
+### Security
+- Full history scanned: no token, key or password has ever been committed.
+- Ignore rules widened to cover configuration files, key files and data files.
+
+## 2026-09-17
+
+### Added
+- Dashboard (table) view with sorting, filtering, column selection and summary tiles, and a
+  Dashboard / Map toggle.
+- Official LandLogic logo; sidebar links open the real product.
+- Repository on GitHub; site on Netlify, deploying on every push.
+
+### Fixed
+- Text overflowing its container in several components.
+- A layout bug that pushed the detail sheet off-screen.
+
+## 2026-09-15
+
+### Added
+- First prototype: LandLogic-style shell, watchlist, map with detail sheet, monitored layers, alert
+  rules, alerts feed.

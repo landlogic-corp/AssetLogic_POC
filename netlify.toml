@@ -20,3 +20,7 @@
   node_bundler = "esbuild"
   external_node_modules = ["pg", "@google-cloud/cloud-sql-connector"]
   included_files = ["scripts/db.js"]
+
+# Daily re-check of every asset; differences between snapshots become alerts.
+[functions."resnapshot"]
+  schedule = "@daily"
