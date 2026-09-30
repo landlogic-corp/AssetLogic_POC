@@ -507,3 +507,19 @@ GRANT SELECT ON ALL TABLES IN SCHEMA ref, gis TO assetlogic_app;
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA app TO assetlogic_app;
 GRANT USAGE ON ALL SEQUENCES IN SCHEMA app TO assetlogic_app;
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA app, gis TO assetlogic_app;
+
+-- ---------------------------------------------------------------------------
+-- Administrator access for the postgres role (applied 2026-09-30).
+-- On Cloud SQL, postgres is not a true superuser; objects created by assetlogic_app are invisible
+-- to it until the owner grants access. Run as assetlogic_app (the owner).
+-- ---------------------------------------------------------------------------
+GRANT USAGE, CREATE ON SCHEMA ref, gis, app TO postgres;
+GRANT ALL PRIVILEGES ON ALL TABLES    IN SCHEMA ref, gis, app TO postgres;
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA ref, gis, app TO postgres;
+GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA ref, gis, app TO postgres;
+-- Objects created later by assetlogic_app get the same rights automatically:
+ALTER DEFAULT PRIVILEGES FOR ROLE assetlogic_app IN SCHEMA ref, gis, app GRANT ALL PRIVILEGES ON TABLES    TO postgres;
+ALTER DEFAULT PRIVILEGES FOR ROLE assetlogic_app IN SCHEMA ref, gis, app GRANT ALL PRIVILEGES ON SEQUENCES TO postgres;
+ALTER DEFAULT PRIVILEGES FOR ROLE assetlogic_app IN SCHEMA ref, gis, app GRANT ALL PRIVILEGES ON FUNCTIONS TO postgres;
+-- Ownership-level power (ALTER, DROP, re-own): postgres acts as a member of the owning role.
+GRANT assetlogic_app TO postgres;
