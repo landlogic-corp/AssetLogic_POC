@@ -105,8 +105,7 @@ Hosting configuration, read by Netlify on every deploy:
 - `[functions."resnapshot"]`: run that function once a day.
 
 ### `package.json` / `package-lock.json`
-One runtime dependency that matters: `pg` (the PostgreSQL client). The Google Cloud SQL connector
-is still listed only until the old database is decommissioned. The `scripts` section defines the commands in the table below.
+One runtime dependency: `pg`, the PostgreSQL client. The `scripts` section defines the commands in the table below.
 `package-lock.json` pins exact versions; commit it when dependencies change, never edit it by hand.
 
 | Command | Runs | Purpose |

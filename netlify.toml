@@ -18,7 +18,7 @@
 [functions]
   directory = "netlify/functions"
   node_bundler = "esbuild"
-  external_node_modules = ["pg", "@google-cloud/cloud-sql-connector"]
+  external_node_modules = ["pg"]
   included_files = ["scripts/db.js"]
 
 # Daily re-check of every asset; differences between snapshots become alerts.

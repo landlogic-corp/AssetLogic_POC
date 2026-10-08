@@ -54,9 +54,8 @@ time. Report that result to the user as it is. After publishing, verify on the l
   and `docs/release-notes.md`.
 
 ## Database work
-- The database is Neon (serverless PostgreSQL + PostGIS, free plan). Connection via `DATABASE_URL` in
-  `.env.local` / Netlify. The Google Cloud SQL path in `scripts/db.js` is legacy; remove it once the
-  old instance is deleted.
+- The database is Neon (serverless PostgreSQL + PostGIS, free plan). The only connection setting is
+  `DATABASE_URL` in `.env.local` locally and in Netlify environment variables.
 - Run scripts with `node --use-system-ca` (the npm scripts already do).
 - Schema changes go into `docs/internal/schema.sql` and are applied to the database; keep both in step.
 - Importers must be streaming, batched, keyed on (source, source record id), and must log a run.

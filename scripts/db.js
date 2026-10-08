@@ -1,14 +1,8 @@
 // Shared database connection for scripts and Netlify Functions.
 //
-// Reads configuration from the environment (Netlify) or .env.local (local). Nothing here ever logs
-// a credential.
-//
-// Preferred: DATABASE_URL   a PostgreSQL connection string (TLS enforced). This is how the Neon
-//                           database is reached.
-// Legacy:    DB_INSTANCE + DB_NAME + DB_USER + DB_PASSWORD + GCP_SA_KEY / GCP_SA_KEY_FILE
-//                           the Google Cloud SQL connector path, kept only until that instance is
-//                           deleted. Remove together with the @google-cloud/cloud-sql-connector
-//                           dependency.
+// Reads DATABASE_URL from the environment (Netlify) or from .env.local (local), opens a small
+// connection pool over TLS with full certificate verification, and exposes query() and close().
+// Nothing here ever logs a credential.
 const fs = require('fs');
 const path = require('path');
 const { Pool } = require('pg');
@@ -24,32 +18,17 @@ function loadEnv() {
 }
 loadEnv();
 
-function required(name) { const v = process.env[name]; if (!v) throw new Error(`${name} is not set`); return v; }
-
-let pool, connector;
+let pool;
 async function getPool() {
   if (pool) return pool;
-  const common = { max: 4, idleTimeoutMillis: 10000, connectionTimeoutMillis: 15000 };
-  if (process.env.DATABASE_URL) {
-    // Strip any sslmode from the URL and enforce full certificate verification ourselves.
-    const url = new URL(process.env.DATABASE_URL); url.searchParams.delete('sslmode'); url.searchParams.delete('uselibpqcompat');
-    pool = new Pool({ ...common, connectionString: url.toString(), ssl: { rejectUnauthorized: true } });
-    return pool;
-  }
-  // Legacy Cloud SQL path
-  const { Connector } = require('@google-cloud/cloud-sql-connector');
-  if (!process.env.GOOGLE_APPLICATION_CREDENTIALS) {
-    if (process.env.GCP_SA_KEY_FILE) process.env.GOOGLE_APPLICATION_CREDENTIALS = process.env.GCP_SA_KEY_FILE;
-    else if (process.env.GCP_SA_KEY) { const tmp = path.join(require('os').tmpdir(), 'assetlogic-sa.json'); if (!fs.existsSync(tmp)) fs.writeFileSync(tmp, process.env.GCP_SA_KEY, { mode: 0o600 }); process.env.GOOGLE_APPLICATION_CREDENTIALS = tmp; }
-    else throw new Error('No database configuration: set DATABASE_URL');
-  }
-  connector = new Connector();
-  const clientOpts = await connector.getOptions({ instanceConnectionName: required('DB_INSTANCE'), ipType: 'PUBLIC' });
-  pool = new Pool({ ...clientOpts, ...common, database: required('DB_NAME'), user: required('DB_USER'), password: required('DB_PASSWORD') });
+  if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL is not set');
+  // Strip any sslmode from the URL and enforce full certificate verification ourselves.
+  const url = new URL(process.env.DATABASE_URL); url.searchParams.delete('sslmode'); url.searchParams.delete('uselibpqcompat');
+  pool = new Pool({ connectionString: url.toString(), ssl: { rejectUnauthorized: true }, max: 4, idleTimeoutMillis: 10000, connectionTimeoutMillis: 15000 });
   return pool;
 }
 async function query(text, params) { const p = await getPool(); return p.query(text, params); }
-async function close() { if (pool) await pool.end(); if (connector) connector.close(); pool = connector = null; }
-const describe = () => process.env.DATABASE_URL ? 'DATABASE_URL (' + new URL(process.env.DATABASE_URL).hostname.split('.').slice(-3).join('.') + ')' : 'Cloud SQL connector';
+async function close() { if (pool) await pool.end(); pool = null; }
+const describe = () => process.env.DATABASE_URL ? 'DATABASE_URL (' + new URL(process.env.DATABASE_URL).hostname.split('.').slice(-3).join('.') + ')' : 'not configured';
 
 module.exports = { getPool, query, close, describe };

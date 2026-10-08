@@ -40,6 +40,8 @@ here.
   which allows 1 GB per project and sleeps when idle. Connection is now a single `DATABASE_URL`.
 - Role grants in the schema are conditional, so the same file works on any host.
 - Health check reports which connection path is in use.
+- The Google Cloud instance, service account and connection code are gone; `DATABASE_URL` is the
+  only database setting left.
 
 ### Added
 - [database-clients.md](database-clients.md): connecting DataGrip, pgAdmin or psql.
