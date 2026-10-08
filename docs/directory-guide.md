@@ -105,8 +105,8 @@ Hosting configuration, read by Netlify on every deploy:
 - `[functions."resnapshot"]`: run that function once a day.
 
 ### `package.json` / `package-lock.json`
-Two runtime dependencies: `pg` (PostgreSQL client) and `@google-cloud/cloud-sql-connector` (secure
-connection to the database). The `scripts` section defines the commands in the table below.
+One runtime dependency that matters: `pg` (the PostgreSQL client). The Google Cloud SQL connector
+is still listed only until the old database is decommissioned. The `scripts` section defines the commands in the table below.
 `package-lock.json` pins exact versions; commit it when dependencies change, never edit it by hand.
 
 | Command | Runs | Purpose |
@@ -161,7 +161,7 @@ each at `/.netlify/functions/<file name>`. Full reference: [api.md](api.md).
 | `build-index.js` | Every Netlify deploy; locally via `npm run build` | Reads `asset-monitor.html`, reads the token and style from the environment (or `.env.local`), writes `index.html` with those and the commit id stamped in |
 | `dev-server.js` | Locally via `npm run dev` | Serves the static page on port 8765 and runs any function at `/.netlify/functions/<name>` in the same process, mimicking Netlify. Refuses to serve `.env*`, `parcels/`, `scripts/`, `netlify/`, `.git/` |
 | `publish.js` | When a reviewed change is ready | Builds, commits, pushes, then polls the live page until it reports the pushed commit id. `--check` only reports what the live site is serving |
-| `db.js` | Imported by everything that needs the database | Loads configuration, opens a small connection pool through the Cloud SQL connector, exposes `query()` and `close()`. Never logs a credential |
+| `db.js` | Imported by everything that needs the database | Loads configuration, opens a small TLS connection pool from `DATABASE_URL`, exposes `query()` and `close()`. Never logs a credential |
 | `db-check.js` | Locally, to diagnose access | Prints server version, extensions, schemas and the current user's privileges |
 | `db-migrate.js` | Once per database (administrators) | Runs the schema definition if the schema is absent, then seeds municipalities, data sources, the layer list and the administrator user. Safe to re-run |
 | `import-parcels.js` | Per city (administrators) | Streams a large GeoJSON file, inserts or updates parcels 400 at a time, logs the run. Safe to re-run |

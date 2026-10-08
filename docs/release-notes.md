@@ -16,7 +16,7 @@ here.
 |---|---|---|---|
 | 1 | **Access control**: sign-in on the site and every function | Today anyone with the URL can change the watchlist | Decision: hosting provider's identity service, or LandLogic's existing login |
 | 2 | **Connect LandLogic data** through its API or MCP, one layer at a time: zoning, Official Plan, secondary plans, heritage, hazards, applications, permits, sales | Turns carried-forward facts into derived, live ones | Endpoint, credential (as a hosting environment variable), field documentation or a sample response per dataset |
-| 3 | **Tighten the database**: encrypted connections only; recreate the application login with minimal rights | Closes the two known configuration gaps | Administrator action in the database console |
+| 3 | **Finish the database move**: delete the Google Cloud instance, remove the old connection code and the connector dependency; give the site a read/write-only login separate from the owner | Ends all cloud charges; least privilege | Administrator deletes the instance |
 | 4 | **Address and identifier search for Toronto and Mississauga** | Their parcel files carry no addresses | Address-point datasets, or item 2 |
 | 5 | **Replace illustrative market data** with real sales and a real series | Currently placeholders | A sales source |
 | 6 | **Add a property by clicking its parcel** on the map | Natural next interaction now that parcels are drawn | Nothing |
@@ -30,6 +30,19 @@ here.
 - Where the internal documents (`docs/internal/`) are backed up, since they are not in git.
 - Whether to keep the repository public. It is public to avoid hosting charges for private
   organisation repositories.
+
+## 2026-10-08
+
+### Changed
+- **Database moved to a free serverless host (Neon).** The original managed instance was a
+  production-grade machine costing hundreds of dollars a month for 480 MB of data. The database was
+  rebuilt from the repository scripts (schema, parcel imports, sample assets) on Neon's free plan,
+  which allows 1 GB per project and sleeps when idle. Connection is now a single `DATABASE_URL`.
+- Role grants in the schema are conditional, so the same file works on any host.
+- Health check reports which connection path is in use.
+
+### Added
+- [database-clients.md](database-clients.md): connecting DataGrip, pgAdmin or psql.
 
 ## 2026-09-30
 

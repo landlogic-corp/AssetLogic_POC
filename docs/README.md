@@ -13,6 +13,7 @@ Start with the page that matches what you are trying to do.
 | Call or change a server function | [api.md](api.md) |
 | Understand what is stored and how alerts are produced | [database.md](database.md) |
 | Import a new dataset | [data-pipeline.md](data-pipeline.md) |
+| Open the database in DataGrip, pgAdmin or psql | [database-clients.md](database-clients.md) |
 | Publish a change | [deployment.md](deployment.md), then [contributing.md](contributing.md) |
 | Check whether something is safe to commit | [security.md](security.md) |
 | Fix an error I am seeing | [troubleshooting.md](troubleshooting.md) |

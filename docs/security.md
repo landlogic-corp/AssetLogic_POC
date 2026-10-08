@@ -13,8 +13,7 @@ Everything the application needs to run is supplied from outside the repository.
 | Secret | Live site | Your machine | In the repository |
 |---|---|---|---|
 | Mapbox token | Hosting environment variable | `.env.local` | **never** |
-| Database connection details and password | Hosting environment variables (password marked secret) | `.env.local` | **never** |
-| Service-account key | Hosting environment variable (marked secret) | A file **outside** the project folder, e.g. `~/.assetlogic/` | **never** |
+| Database connection string (contains the password) | Hosting environment variable, marked secret | `.env.local` | **never** |
 | Administrator database login | Not stored in this system | Administrator only | **never** |
 
 All of these are issued by the project administrator. If you need one, ask; do not look for it in
@@ -57,10 +56,8 @@ check matters most right before publishing.
 - **The map token is public by design, and restricted.** Mapbox public tokens are meant to appear in
   a page. Ours is limited to the site's address and `localhost`, so it is useless elsewhere. It is
   injected at build time from the hosting environment rather than stored in the repository.
-- **No open network path to the database.** Connections go through an identity-checked, encrypted
-  connector; no address is allow-listed.
-- **Least privilege.** The identity the site uses can connect to the database service and nothing
-  else in the cloud project.
+- **Encrypted, verified connections to the database.** The connection string is used with full
+  certificate verification; the client refuses anything else.
 - **Parameterised queries and input validation** in every function. Identifiers are checked for
   shape, strings for length, enumerations against allow-lists.
 - **Errors do not leak.** Function errors return a generic message with credentials redacted.
@@ -74,8 +71,7 @@ Stated plainly so nobody assumes otherwise:
 | Gap | Impact | Status |
 |---|---|---|
 | **No sign-in on the site or the functions** | Anyone who has the URL can view and change the watchlist | Next planned piece of work. Do not circulate the URL outside the team until done |
-| The database accepts unencrypted connections in principle | Nothing in this system uses one, but the option should be closed | Configuration change pending |
-| The application's database login has broader rights than it needs | Defence in depth is weaker than it should be | To be recreated with minimal rights |
+| The site and the local scripts share one database login that owns the schema | A compromised site could alter structure, not just data | Create a read/write-only login for the site when access control is added |
 | A schema file was public for two days before being moved to internal docs | It remains in git history | Decision pending on rewriting history |
 
 ## If a secret is exposed

@@ -6,7 +6,7 @@ documents ([how to get them](README.md#internal-documents)).
 
 ## Technology
 
-PostgreSQL with the **PostGIS** extension, hosted as a managed service. PostGIS adds geometry types
+PostgreSQL with the **PostGIS** extension, hosted as a managed serverless service that scales to zero when idle and wakes on the first query. PostGIS adds geometry types
 and spatial functions, so questions such as "which parcel contains this point", "which zone does this
 parcel sit in" and "what lies within 500 metres" are single queries backed by spatial indexes.
 
@@ -105,8 +105,8 @@ is used.
 
 ## Access model
 
-- The application connects as a dedicated login through a secure, identity-checked connector. There
-  are no open network paths to the database.
+- The application connects over TLS with a single connection string that is held only in the hosting
+  environment and in developers' local configuration.
 - An administrator login exists for direct queries.
 - The browser never connects to the database.
 - Removing an asset archives it rather than deleting it.

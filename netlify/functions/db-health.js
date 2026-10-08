@@ -21,6 +21,7 @@ exports.handler = async () => {
         extensions: ext.rows.map(r => r.extname),
         schemas: sch.rows.map(r => r.nspname),
         schemaCreated: sch.rows.length === 3,
+        via: db.describe(),
       }),
     };
   } catch (e) {

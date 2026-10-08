@@ -31,8 +31,7 @@ You do not need these for level 1. For levels 2 and 3, request:
 |---|---|---|
 | `MAPBOX_TOKEN` | Level 2 | A public Mapbox access token. The administrator must allow `http://localhost` on it |
 | `MAPBOX_STYLE` | Level 2 | The address of the LandLogic basemap style |
-| `DB_INSTANCE`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` | Level 3 | Where the database is and the application login |
-| A service-account key file (`.json`) | Level 3 | Proves to Google Cloud that you may connect |
+| `DATABASE_URL` | Level 3 | One connection string for the database. It contains the password |
 
 These are credentials. Receive them through a private channel, never by email thread or chat that
 others can read, and never commit them. See [security.md](security.md).
@@ -122,39 +121,15 @@ the LandLogic basemap, and the cards show real map thumbnails.
 
 ## Level 3 · Live data
 
-**Step 9. Store the key file outside the repository.**
-
-Create a folder named `.assetlogic` in your home directory and put the key file in it:
-
-```bash
-mkdir -p ~/.assetlogic
-mv ~/Downloads/<the key file>.json ~/.assetlogic/gcp-sa-key.json
-```
-
-PowerShell:
-
-```powershell
-New-Item -ItemType Directory -Force "$HOME\.assetlogic"
-Move-Item "$HOME\Downloads\<the key file>.json" "$HOME\.assetlogic\gcp-sa-key.json"
-```
-
-Do not put it inside the project folder. The repository ignores key files by name as a safety net,
-but the right place is outside it.
-
-**Step 10. Fill in the database lines** in `.env.local`:
+**Step 9. Add the database line** to `.env.local`:
 
 ```
-DB_INSTANCE=<value from the administrator>
-DB_NAME=<value from the administrator>
-DB_USER=<value from the administrator>
-DB_PASSWORD=<value from the administrator>
-GCP_SA_KEY_FILE=<absolute path to the key file from step 9>
+DATABASE_URL=<the connection string from the administrator>
 ```
 
-Use the full path, for example `C:\Users\you\.assetlogic\gcp-sa-key.json` on Windows or
-`/Users/you/.assetlogic/gcp-sa-key.json` on macOS. Put each value on one line with nothing after it.
+One line, nothing after the value. The string contains a password, so it is as sensitive as one.
 
-**Step 11. Check the database connection.**
+**Step 10. Check the database connection.**
 
 ```bash
 npm run db:check
@@ -172,7 +147,7 @@ Schemas: app, gis, ref, …
 If this fails, go to [troubleshooting.md](troubleshooting.md) before continuing. The most common
 cause on Windows is antivirus software that inspects encrypted connections.
 
-**Step 12. Restart the server and reload.**
+**Step 11. Restart the server and reload.**
 
 ```bash
 npm run dev
@@ -216,9 +191,10 @@ are pushed.
   (`db:migrate`, `db:import-parcels`, `db:load-assets`) are for administrators rebuilding the
   environment and need internal files you will not have.
 - **Download parcel data.** It is already in the database.
-- **Install PostgreSQL, the Google Cloud CLI or the Netlify CLI.** The project uses Node.js only.
+- **Install PostgreSQL or the Netlify CLI.** The project uses Node.js only. A database client such as
+  DataGrip is optional; see [database-clients.md](database-clients.md).
 
 ## Removing the project
 
-Stop the server, delete the project folder, and delete `~/.assetlogic`. Tell the administrator so
-the credentials issued to you can be rotated.
+Stop the server and delete the project folder. Tell the administrator so the credentials issued to
+you can be rotated.

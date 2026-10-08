@@ -39,7 +39,7 @@ FAILED: unable to verify the first certificate
 ```
 
 **Cause.** Security software on the machine is inspecting encrypted connections and substituting its
-own certificate. The database connector pins the database's real certificate and correctly refuses
+own certificate. The database client verifies the server's real certificate and correctly refuses
 the substitute. Seen with Norton 360's *Safe Web → HTTPS scanning*; other products with "HTTPS
 scanning", "SSL inspection" or "web shield" features behave the same way, as do some corporate
 proxies.

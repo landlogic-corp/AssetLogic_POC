@@ -59,9 +59,8 @@ Terms used in the application, the code and these documents.
 | **PostgreSQL** | The database system |
 | **PostGIS** | The PostgreSQL extension that adds geometry types and spatial queries |
 | **Schema** (database) | A named group of tables inside a database. Also used loosely for the overall structure |
-| **Cloud SQL** | Google Cloud's managed PostgreSQL service |
-| **Connector** | The library that opens an encrypted, identity-checked connection to the database without exposing it to the network |
-| **Service account** | A non-human identity used by software to authenticate to a cloud provider |
+| **Connection string** | One text value naming the database host, database, user and password. Treated as a secret |
+| **Scale to zero** | A hosted database that suspends its compute when idle and resumes on the next query |
 | **Environment variable** | A named configuration value supplied to a program from outside its code |
 | **Mapbox GL JS** | The browser library that renders the map |
 | **Style** (Mapbox) | The definition of how the basemap looks |

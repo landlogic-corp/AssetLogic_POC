@@ -81,9 +81,7 @@ The live site reads its configuration from Netlify's environment variables. The 
 |---|---|---|
 | `MAPBOX_TOKEN` | build, and by the add-asset function | no: a public token restricted to the site's address |
 | `MAPBOX_STYLE` | build | no |
-| `DB_INSTANCE`, `DB_NAME`, `DB_USER` | run time | no |
-| `DB_PASSWORD` | run time | **yes** |
-| `GCP_SA_KEY` | run time | **yes** |
+| `DATABASE_URL` | run time | **yes**: the connection string contains the password |
 
 Values are set by the administrator in Netlify and are not recorded anywhere in this repository.
 After changing a variable, trigger a new deploy for it to take effect.

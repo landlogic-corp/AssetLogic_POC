@@ -29,7 +29,7 @@ flowchart LR
     B["Browser<br/>index.html"] -- "page + assets" --> N["Netlify CDN"]
     B -- "/.netlify/functions/*" --> F["Netlify Functions<br/>Node.js"]
     B -- "map tiles, style" --> M["Mapbox"]
-    F -- "secure connector" --> D[("PostgreSQL + PostGIS<br/>Google Cloud SQL")]
+    F -- "TLS" --> D[("PostgreSQL + PostGIS<br/>managed, serverless")]
     F -- "geocoding" --> M
     G["GitHub main"] -- "push triggers build" --> N
 ```
@@ -40,7 +40,7 @@ functions that hold the credentials. Full explanation: [docs/architecture.md](do
 ## Quick start
 
 You need **Node.js 22.15 or newer** and a set of configuration values **issued by the project
-administrator** (a Mapbox token and database credentials). Nothing sensitive is in this repository.
+administrator** (a Mapbox token and a database connection string). Nothing sensitive is in this repository.
 
 ```bash
 git clone https://github.com/landlogic-corp/AssetLogic_POC.git
@@ -68,6 +68,7 @@ notes, are in [docs/local-setup.md](docs/local-setup.md).
 | [docs/api.md](docs/api.md) | Every server function: inputs, outputs, errors |
 | [docs/database.md](docs/database.md) | What the database holds and how facts and alerts are produced |
 | [docs/data-pipeline.md](docs/data-pipeline.md) | How parcels and other layers are imported |
+| [docs/database-clients.md](docs/database-clients.md) | Opening the database in DataGrip, pgAdmin or psql |
 | [docs/deployment.md](docs/deployment.md) | How changes are reviewed, published and verified |
 | [docs/security.md](docs/security.md) | How secrets are handled and what must never be committed |
 | [docs/contributing.md](docs/contributing.md) | Working rules, conventions and the review process |

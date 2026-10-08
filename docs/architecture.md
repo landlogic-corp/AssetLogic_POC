@@ -15,7 +15,7 @@ flowchart TB
       fns["Functions (Node.js)<br/>assets · parcels · add-asset · monitoring · db-health · resnapshot"]
       cfg[("Environment variables<br/>token, database credentials")]
     end
-    subgraph data["Google Cloud"]
+    subgraph data["Managed database"]
       db[("PostgreSQL + PostGIS<br/>reference · spatial layers · product data")]
     end
     mb["Mapbox APIs<br/>style, tiles, static images, geocoding"]
@@ -37,7 +37,7 @@ flowchart TB
 | **Mapbox GL JS** | The map library LandLogic already uses | The map looks and behaves like the rest of the platform |
 | **Netlify CDN** | Serves the built page | Deploys on every push, no server to run |
 | **Functions** | Six small Node.js handlers | Hold the database credentials so the browser never does; validate input; shape data for the page |
-| **Database** | PostgreSQL with the PostGIS spatial extension | Stores hundreds of thousands of parcel polygons and answers "what is under this point" and "what is within 500 m" directly |
+| **Database** | PostgreSQL with the PostGIS spatial extension, on a managed serverless host that sleeps when idle | Stores hundreds of thousands of parcel polygons and answers "what is under this point" and "what is within 500 m" directly, at no cost at this scale |
 | **Mapbox APIs** | Style, tiles, thumbnails, address lookup | Basemap and turning an address into coordinates |
 
 ## Two rules the design follows
