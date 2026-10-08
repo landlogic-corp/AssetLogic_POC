@@ -5,7 +5,7 @@ a watchlist of properties; for each one the system shows its zoning, Official Pl
 secondary plan, heritage status, flood risk, nearby development applications and market context, and
 raises an alert when any of that changes.
 
-**Live:** https://landlogic-assetmonitoring.netlify.app/
+**Live:** https://landlogic-assetlogic.netlify.app/
 
 > **Status.** Runs on a real database with real parcel boundaries for Toronto, Mississauga and the
 > Region of Waterloo. Planning facts for the first eight properties come from a LandLogic sample
