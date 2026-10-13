@@ -179,7 +179,7 @@ Whether the site can reach the database. Returns no data and no credentials.
 ## How a function is put together
 
 ```js
-const { json, bad, fail, parseBody, isUuid, adminId, db } = require('./_lib');
+const { json, bad, fail, parseBody, isUuid, adminId, db } = require('../lib/shared');
 
 exports.handler = async (event) => {
   try {
@@ -193,7 +193,8 @@ exports.handler = async (event) => {
 };
 ```
 
-`_lib.js` provides the helpers. `scripts/db.js` provides the connection: a small pool opened lazily
+`netlify/lib/shared.js` provides the helpers. It sits outside `netlify/functions/` on purpose: every
+file in that folder is deployed as an endpoint. `scripts/db.js` provides the connection: a small pool opened lazily
 on first use and reused while the function instance stays warm.
 
 ## Adding an endpoint

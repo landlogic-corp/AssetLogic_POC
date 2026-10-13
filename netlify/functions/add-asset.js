@@ -3,7 +3,7 @@
 // chosen layers, takes the first snapshot, and returns the asset in page shape.
 // GET  /.netlify/functions/add-asset?q=<text>  → address suggestions (proxy to the geocoder, so the
 // browser never needs its own geocoding call)
-const { json, bad, fail, parseBody, str, adminId, loadAssets, db } = require('./_lib');
+const { json, bad, fail, parseBody, str, adminId, loadAssets, db } = require('../lib/shared');
 
 const SITE = process.env.URL || process.env.DEPLOY_PRIME_URL || 'http://localhost:8765';
 async function geocode(q, limit = 1) {

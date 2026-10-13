@@ -3,7 +3,7 @@
 //   { action: 'rule',  assetId, layerId, rule: {trigger, radius, channels, freq} | null }   set or remove an alert rule
 //   { action: 'read',  alertId }  or  { action: 'read', all: true }      mark alerts read
 //   { action: 'snapshot', assetId }                                     re-run the spatial check for one asset
-const { json, bad, fail, parseBody, str, isUuid, adminId, db } = require('./_lib');
+const { json, bad, fail, parseBody, str, isUuid, adminId, db } = require('../lib/shared');
 const LAYER_IDS = ['zoning', 'op', 'sp', 'coa', 'apps', 'permits', 'transit', 'heritage', 'flood', 'env', 'sales', 'rent', 'mpac'];
 const RADIUS = { 'On property': 0, '250 m': 250, '500 m': 500, '1 km': 1000, '2 km': 2000 };
 const CHANNELS = ['In-app', 'Email', 'SMS', 'Teams'];

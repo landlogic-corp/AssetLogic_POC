@@ -1,7 +1,7 @@
 // Scheduled daily (see netlify.toml): re-runs app.snapshot_asset() for every active asset and turns
 // differences between the new and previous snapshot into alerts. Also callable by hand:
 //   POST /.netlify/functions/resnapshot   (no body)
-const { json, fail, db } = require('./_lib');
+const { json, fail, db } = require('../lib/shared');
 
 const FIELDS = [
   ['zoning_code', 'zoning', 'planning', 'crit', 'Zoning changed'],

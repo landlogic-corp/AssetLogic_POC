@@ -49,6 +49,15 @@ Full guide, including pgAdmin and psql: [database-clients.md](database-clients.m
 The first query after a quiet period takes a second while the database wakes. The login owns the
 schema, so prefer `select` while exploring; structural changes go through the reviewed schema file.
 
+## 2026-10-13
+
+### Fixed
+- The shared helper file for the functions was being deployed as an endpoint of its own, which
+  answered with a crash page. It now lives in `netlify/lib/`, outside the functions folder.
+
+### Security
+- Netlify build logs are no longer public.
+
 ## 2026-10-08
 
 ### Changed

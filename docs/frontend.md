@@ -172,7 +172,7 @@ Every render function reads the same object shape, whether it came from the samp
 }
 ```
 
-`netlify/functions/_lib.js` produces exactly this. If you add a field the page needs, add it there
+`netlify/lib/shared.js` produces exactly this. If you add a field the page needs, add it there
 and in the sample block.
 
 ## Common changes
@@ -184,7 +184,7 @@ and in the sample block.
 | Add a monitorable layer | Add to `LAYER_GROUPS`; the layer id must also exist in the database's layer list and in the functions' allowed list |
 | Change a colour | Edit the custom property on `:root` (and its dark counterpart) |
 | Add a summary tile | Add to the `tiles` array in `renderDash()` and a matching entry in `TILE_FILTER` |
-| Show a new fact | Add it to the asset shape in `_lib.js`, then render it where needed |
+| Show a new fact | Add it to the asset shape in `netlify/lib/shared.js`, then render it where needed |
 
 After any edit:
 

@@ -1,7 +1,7 @@
 // GET /.netlify/functions/parcels?bbox=minLng,minLat,maxLng,maxLat
 // Returns the parcels in the current map view as GeoJSON. The box is capped so a city can never be
 // requested in one call; the page only asks at street-level zoom.
-const { json, bad, fail, db } = require('./_lib');
+const { json, bad, fail, db } = require('../lib/shared');
 const MAX_SPAN_DEG = 0.03; // ~2.4 km east-west at Toronto's latitude
 
 exports.handler = async (event) => {

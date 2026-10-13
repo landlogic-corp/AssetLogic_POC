@@ -12,8 +12,9 @@ AssetLogic_POC/
 ├── index.html                    ← generated from it; not in git
 │
 ├── netlify/
+│   ├── lib/
+│   │   └── shared.js                shared helpers + the query that builds an asset (not an endpoint)
 │   └── functions/                ← THE API (server side)
-│       ├── _lib.js                  shared helpers + the query that builds an asset
 │       ├── assets.js                list / get / remove assets
 │       ├── parcels.js               parcels in the current map view
 │       ├── add-asset.js             address suggestions + create an asset
@@ -62,7 +63,7 @@ flowchart TD
     IDX -- "served by" --> NET["Netlify CDN (live)"]
     IDX -- "fetch()" --> FN["netlify/functions/*.js"]
     DS -- "runs in-process" --> FN
-    FN -- "require" --> LIB["netlify/functions/_lib.js"]
+    FN -- "require" --> LIB["netlify/lib/shared.js"]
     LIB -- "require" --> DB["scripts/db.js"]
     ENV -- "database credentials" --> DB
     DB -- "connects to" --> PG[("Database")]
@@ -141,16 +142,18 @@ of truth, that nothing is pushed without review, how to publish, and how secrets
 ## `netlify/functions/` (the API)
 
 Each file exports one `handler(event)` that returns `{ statusCode, headers, body }`. Netlify serves
-each at `/.netlify/functions/<file name>`. Full reference: [api.md](api.md).
+each at `/.netlify/functions/<file name>`, so only endpoints belong in this folder; shared code goes
+in `netlify/lib/shared.js` (response helpers, input validators, the single-user lookup, and
+`loadAssets()` / `loadAlerts()`, which assemble the JSON the page renders). Full reference:
+[api.md](api.md).
 
 | File | Responsibility | Talks to |
 |---|---|---|
-| `_lib.js` | Not an endpoint (the leading underscore). Response helpers, input validators, the single-user lookup, and `loadAssets()` / `loadAlerts()`, which assemble the JSON the page renders | `scripts/db.js` |
-| `assets.js` | `GET` all assets and alerts, `GET` one asset, `DELETE` (archive) an asset | `_lib.js` |
-| `parcels.js` | `GET` the parcels inside a bounding box, refusing boxes that are too large | `_lib.js` |
-| `add-asset.js` | `GET` address suggestions; `POST` create an asset: geocode, create, enable layers, snapshot | `_lib.js`, Mapbox Geocoding |
-| `monitoring.js` | `POST` actions: toggle a layer, set or remove a rule, mark alerts read, re-check one asset | `_lib.js` |
-| `resnapshot.js` | Scheduled daily and callable by hand: re-check every asset, turn differences into alerts | `_lib.js` |
+| `assets.js` | `GET` all assets and alerts, `GET` one asset, `DELETE` (archive) an asset | `netlify/lib/shared.js` |
+| `parcels.js` | `GET` the parcels inside a bounding box, refusing boxes that are too large | `netlify/lib/shared.js` |
+| `add-asset.js` | `GET` address suggestions; `POST` create an asset: geocode, create, enable layers, snapshot | `shared.js`, Mapbox Geocoding |
+| `monitoring.js` | `POST` actions: toggle a layer, set or remove a rule, mark alerts read, re-check one asset | `netlify/lib/shared.js` |
+| `resnapshot.js` | Scheduled daily and callable by hand: re-check every asset, turn differences into alerts | `netlify/lib/shared.js` |
 | `db-health.js` | `GET` server version and whether the schema exists. Returns no data and no credentials | `scripts/db.js` |
 
 ## `scripts/` (tooling)
@@ -185,7 +188,7 @@ internal documents and is git-ignored.
 | Change | File |
 |---|---|
 | Anything visible on the page | `asset-monitor.html` |
-| What data an asset carries when it reaches the page | `netlify/functions/_lib.js` (`loadAssets`) |
+| What data an asset carries when it reaches the page | `netlify/lib/shared.js` (`loadAssets`) |
 | A new server action | A new file in `netlify/functions/`, or a new `action` in `monitoring.js` |
 | How an address is matched to a parcel, or how facts are derived | The database functions (internal schema); see [database.md](database.md) |
 | A new dataset | A new importer in `scripts/`, modelled on `import-parcels.js`; see [data-pipeline.md](data-pipeline.md) |

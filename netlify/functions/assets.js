@@ -1,7 +1,7 @@
 // GET    /.netlify/functions/assets            → { ok, assets: [...], alerts: [...] }
 // GET    /.netlify/functions/assets?id=<uuid>  → { ok, asset }
 // DELETE /.netlify/functions/assets?id=<uuid>  → archives the asset (removes it from the watchlist)
-const { json, bad, fail, isUuid, adminId, loadAssets, loadAlerts, db } = require('./_lib');
+const { json, bad, fail, isUuid, adminId, loadAssets, loadAlerts, db } = require('../lib/shared');
 
 exports.handler = async (event) => {
   try {
