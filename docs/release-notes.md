@@ -4,19 +4,20 @@ Newest first. Each entry says what changed and, at the top, where work resumes.
 
 Live site: https://landlogic-assetlogic.netlify.app
 
-## Where we are (paused 2026-09-30)
+## Where we are (paused 2026-10-08)
 
-The prototype is a working application on a real database: real parcel boundaries for three cities,
-eight monitored properties, an API, a daily re-check, and a full documentation set. Work is paused
-here.
+The prototype is a working application on a free, serverless PostgreSQL + PostGIS database: real
+parcel boundaries for Toronto, Mississauga and the Region of Waterloo, eight monitored properties,
+an API, a daily re-check, and a full documentation set. Nothing in the stack bills: Netlify free,
+Neon free, Mapbox free, public GitHub. The Google Cloud instance is deleted.
 
 ### Resume with these, in order
 
 | # | Task | Why now | Needs from LandLogic |
 |---|---|---|---|
-| 1 | **Access control**: sign-in on the site and every function | Today anyone with the URL can change the watchlist | Decision: hosting provider's identity service, or LandLogic's existing login |
-| 2 | **Connect LandLogic data** through its API or MCP, one layer at a time: zoning, Official Plan, secondary plans, heritage, hazards, applications, permits, sales | Turns carried-forward facts into derived, live ones | Endpoint, credential (as a hosting environment variable), field documentation or a sample response per dataset |
-| 3 | **Finish the database move**: delete the Google Cloud instance, remove the old connection code and the connector dependency; give the site a read/write-only login separate from the owner | Ends all cloud charges; least privilege | Administrator deletes the instance |
+| 1 | **Access control**: sign-in on the site and every function | Today anyone with the URL can change the watchlist | Decision: Netlify Identity (invite-only), or LandLogic's existing login |
+| 2 | **Connect LandLogic data** through its API or MCP, one layer at a time: zoning, Official Plan, secondary plans, heritage, hazards, applications, permits, sales | Turns carried-forward facts into derived, live ones | Endpoint, credential (as a Netlify environment variable), field documentation or a sample response per dataset |
+| 3 | **Separate database login for the site** with read/write rights only, keeping the owner login for administrators | Least privilege | Nothing |
 | 4 | **Address and identifier search for Toronto and Mississauga** | Their parcel files carry no addresses | Address-point datasets, or item 2 |
 | 5 | **Replace illustrative market data** with real sales and a real series | Currently placeholders | A sales source |
 | 6 | **Add a property by clicking its parcel** on the map | Natural next interaction now that parcels are drawn | Nothing |
@@ -30,6 +31,23 @@ here.
 - Where the internal documents (`docs/internal/`) are backed up, since they are not in git.
 - Whether to keep the repository public. It is public to avoid hosting charges for private
   organisation repositories.
+
+### Connecting with DataGrip
+
+Full guide, including pgAdmin and psql: [database-clients.md](database-clients.md).
+
+1. Get the **direct** connection string from the administrator (in Neon: *Connect*, untick
+   *Connection pooling*). It has the form `postgresql://user:password@host/database?sslmode=require`.
+2. In DataGrip: **+** → **Data Source** → **PostgreSQL**. Download the driver if prompted.
+3. **General** tab: Host = the part between `@` and `/`; Port `5432`; User = before the first `:`;
+   Password = between `:` and `@`; Database = after the last `/`, before `?`.
+4. **SSH/SSL** tab: tick **Use SSL**, Mode **require**, leave certificate fields empty.
+5. **Test Connection**: expect PostgreSQL 18.6.
+6. **Schemas** tab: tick **ref**, **gis** and **app**. Only `public` is shown by default, and it is empty.
+7. Click OK, then try `select * from app.asset_dashboard;`
+
+The first query after a quiet period takes a second while the database wakes. The login owns the
+schema, so prefer `select` while exploring; structural changes go through the reviewed schema file.
 
 ## 2026-10-08
 

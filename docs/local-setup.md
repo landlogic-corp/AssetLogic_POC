@@ -198,3 +198,24 @@ are pushed.
 
 Stop the server and delete the project folder. Tell the administrator so the credentials issued to
 you can be rotated.
+
+## Moving to another machine
+
+Everything in git comes with a clone. Five things do not, and have to be carried over by hand
+through a private channel (a USB drive, or LandLogic's private document store), never by email or
+chat:
+
+| Item | Where it lives | Needed for |
+|---|---|---|
+| `.env.local` | project folder | Map and database access (level 2 and 3) |
+| `docs/internal/` | project folder | Administrator work: ERD, infrastructure map, schema file, provisioning notes |
+| `parcels/` (about 480 MB) | project folder | Only re-importing parcels; the database already has them. Optional |
+| `.claude/launch.json` | project folder | The desktop app's "run the dev server" button. Optional; recreate from [directory-guide.md](directory-guide.md) if missing |
+| Claude Code memory for this project | `~/.claude/projects/<project-path-slug>/memory/` | Continuity for AI-assisted sessions. Optional; `CLAUDE.md` and [release-notes.md](release-notes.md) carry the essentials |
+
+On the new machine: install Node.js 22.15 or newer and Git, sign in to GitHub with an account that
+has write access to the repository, clone, drop the carried-over files into place, then follow the
+levels above from step 2. Finish with `npm run db:check` and `npm run dev`.
+
+If the new machine runs security software that inspects encrypted connections, see
+[troubleshooting.md](troubleshooting.md) before assuming the database is unreachable.
